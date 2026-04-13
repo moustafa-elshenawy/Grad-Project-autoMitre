@@ -123,36 +123,62 @@ async def extract_attacks(file: UploadFile = File(...), context: Optional[str] =
         filename = file.filename.lower() if file.filename else ""
         content = await file.read()
         
-        text_content = ""
+        from models.schemas import ExtractedAttacksResponse, ExtractedAttack
         
-        # Binary PCAP routing (support common extensions)
+        # Binary PCAP routing (support common extensions or magic bytes)
         pcap_exts = (".pcap", ".pcapng", ".cap", ".dmp")
-        if filename.endswith(pcap_exts):
-            temp_path = f"/tmp/{uuid.uuid4()}_{filename}"
+        is_pcap = filename.endswith(pcap_exts)
+        
+        valid_magics = [
+            b'\xd4\xc3\xb2\xa1', b'\xa1\xb2\xc3\xd4',  # Standard PCAP (microsecond)
+            b'\x4d\x3c\xb2\xa1', b'\xa1\xb2\x3c\x4d',  # Nanosecond PCAP
+            b'\x0a\x0d\x0d\x0a'                        # PCAPNG
+        ]
+        if len(content) >= 4 and content[:4] in valid_magics:
+            is_pcap = True
+            
+        if is_pcap:
+            temp_path = f"/tmp/{uuid.uuid4()}_{filename if filename else 'upload.pcap'}"
             with open(temp_path, "wb") as f:
                 f.write(content)
             
-            # Scapy binary decode to textual representation
-            text_content = parse_pcap_bytes(temp_path)
+            from core.pcap_extractor import analyze_pcap
+            pcap_report = analyze_pcap(temp_path)
             
-            # Safely cleanup binary temp file
             if os.path.exists(temp_path):
                 os.remove(temp_path)
-        else:
-            # Handle Standard Text/JSON Logs
-            # Safety limit: don't decode > 2MB as text for extraction
-            trimmed_content = content[:2000000] # 2MB absolute cap
-            text_content = trimmed_content.decode('utf-8', errors='ignore')
-            
+                
+            if 'error' in pcap_report:
+                raise HTTPException(status_code=400, detail=pcap_report['error'])
+                
+            validated_attacks = []
+            for idx, att in enumerate(pcap_report.get('attacks', []), 1):
+                snippet = f"Attack Type: {att['type']}\nMetrics: {att['metrics']}\nDetails: {att['verdict']}"
+                if context:
+                    snippet = f"Context: {context}\n\n{snippet}"
+                    
+                validated_attacks.append(
+                    ExtractedAttack(
+                        id=f"pcap-{idx}",
+                        title=att['type'],
+                        description=att['verdict'],
+                        raw_snippet=snippet,
+                        severity_estimate=att['severity']
+                    )
+                )
+                
+            return ExtractedAttacksResponse(success=True, attacks=validated_attacks)
+
+        # Handle Standard Text/JSON Logs
+        trimmed_content = content[:2000000] # 2MB absolute cap
+        text_content = trimmed_content.decode('utf-8', errors='ignore')
+        
         if context:
             text_content = f"Context: {context}\n\n{text_content}"
-
             
         from core.nano_llm_engine import nano_llm
         attacks = nano_llm.identify_attacks(text_content)
         
-        from models.schemas import ExtractedAttacksResponse, ExtractedAttack
-        # Enforce schema structure
         validated_attacks = [ExtractedAttack(**a) for a in attacks]
         
         return ExtractedAttacksResponse(success=True, attacks=validated_attacks)
