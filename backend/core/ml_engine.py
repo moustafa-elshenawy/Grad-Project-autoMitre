@@ -247,11 +247,8 @@ class EnsembleMLEngine:
             features = self._extract_features(text, entities, heuristic_score)
             
             # Supervised Anomaly Prediction
-            if hasattr(self, 'anomaly_clf') and self.anomaly_clf:
-                # Returns 1 for Attack, 0 for Normal
-                anomaly_prob = self.anomaly_clf.predict_proba(features)[0][1]
-                is_anomalous = (anomaly_prob > 0.5)
-            elif self.iforest:
+            # (Note: anomaly_clf is for NSL-KDD network data, so we exclusively use iforest for text features)
+            if self.iforest:
                 # Unsupervised Fallback
                 is_anomalous = (self.iforest.predict(features)[0] == -1)
 

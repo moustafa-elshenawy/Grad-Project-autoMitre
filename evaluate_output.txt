@@ -1,0 +1,141 @@
+Warning: You are sending unauthenticated requests to the HF Hub. Please set a HF_TOKEN to enable higher rate limits and faster downloads.
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/272 [00:00<?, ?it/s]Loading weights:   0%|          | 1/272 [00:00<01:32,  2.94it/s]Loading weights:  90%|█████████ | 246/272 [00:00<00:00, 723.10it/s]Loading weights: 100%|██████████| 272/272 [00:00<00:00, 574.93it/s]
+========================================================================
+  autoMITRE v1.2 — COMBINED HYBRID PIPELINE EVALUATION
+========================================================================
+  Benchmark samples: 40
+  Unique ground-truth techniques: 46
+  Severity classes: 4
+
+  ⏳ Running full pipeline (Heuristics → SecBERT → Semantic Embedder)...
+
+Loading weights:   0%|          | 0/105 [00:00<?, ?it/s]Loading weights: 100%|██████████| 105/105 [00:00<00:00, 6963.87it/s]
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 7345.35it/s]
+[1mMPNetModel LOAD REPORT[0m from: sentence-transformers/all-mpnet-base-v2
+Key                     | Status     |  | 
+------------------------+------------+--+-
+embeddings.position_ids | UNEXPECTED |  | 
+
+[3mNotes:
+- UNEXPECTED[3m	:can be ignored when loading from different task/architecture; not ok if you expect identical arch.[0m
+Loading weights:   0%|          | 0/199 [00:00<?, ?it/s]Loading weights: 100%|██████████| 199/199 [00:00<00:00, 11478.29it/s]
+[1mMPNetModel LOAD REPORT[0m from: sentence-transformers/all-mpnet-base-v2
+Key                     | Status     |  | 
+------------------------+------------+--+-
+embeddings.position_ids | UNEXPECTED |  | 
+
+[3mNotes:
+- UNEXPECTED[3m	:can be ignored when loading from different task/architecture; not ok if you expect identical arch.[0m
+▶  [A] TECHNIQUE MAPPING — Multi-Label Precision / Recall / F1
+------------------------------------------------------------------------
+  Metric                               Strict   Lenient (sub-tech)
+  -------------------------------- ---------- --------------------
+  Precision (micro)                    0.1667               0.1667
+  Recall (micro)                       0.3175               0.3175
+  F1-Score (micro)                     0.2186               0.2186
+  Precision (macro)                    0.1440                    —
+  Recall (macro)                       0.2179                    —
+  F1-Score (macro)                     0.1625                    —
+
+▶  [B] SEVERITY CLASSIFICATION — 4-Class (Low/Medium/High/Critical)
+------------------------------------------------------------------------
+  Accuracy:             0.6000  (60.0%)
+  Precision (weighted): 0.5891
+  Recall (weighted):    0.6000
+  F1-Score (weighted):  0.4721
+
+  Confusion Matrix (Rows=Actual, Cols=Predicted):
+                             Low      Medium        High    Critical
+  Low                          0           0           1           0
+  Medium                       0           0           6           0
+  High                         0           0          23           0
+  Critical                     0           0           9           1
+
+  Per-class report:
+                precision    recall  f1-score   support
+  
+           Low       0.00      0.00      0.00         1
+        Medium       0.00      0.00      0.00         6
+          High       0.59      1.00      0.74        23
+      Critical       1.00      0.10      0.18        10
+  
+      accuracy                           0.60        40
+     macro avg       0.40      0.28      0.23        40
+  weighted avg       0.59      0.60      0.47        40
+  
+
+▶  [C] SAMPLE-BY-SAMPLE TECHNIQUE RESULTS
+------------------------------------------------------------------------
+  #   Expected Techs               Predicted Techs                        Match
+  --- ---------------------------- -------------------------------------- ----------
+  1   T1003                        T1003, T1003.001, T1588.002            ✓ full
+  2   T1558                        T1033, T1133, T1543.003                ✗ miss
+  3   T1550                        T1033, T1003, T1555.003                ✗ miss
+  4   T1110                        T1033, T1003, T1555.003                ✗ miss
+  5   T1558, T1003                 T1033, T1087.001, T1016                ✗ miss
+  6   T1486, T1485                 T1112, T1070, T1083                    ✗ miss
+  7   T1486                        T1005, T1083, T1486                    ✓ full
+  8   T1485, T1490                 T1070.004, T1105, T1486                ✗ miss
+  9   T1190                        T1033, T1003, T1555.003                ✗ miss
+  10  T1190                        T1033, T1055, T1059.001                ✗ miss
+  11  T1190                        T1003, T1555.003, T1003.001            ✗ miss
+  12  T1505                        T1505.003, T1059, T1083                ✓ full
+  13  T1059, T1059.001             T1047, T1059, T1059.001                ✓ full
+  14  T1566, T1059                 T1071, T1573, T1095                    ✗ miss
+  15  T1071, T1071.001             T1071, T1027, T1095                    ✓ full
+  16  T1055                        T1055, T1057, T1059.001                ✓ full
+  17  T1547, T1547.001             T1112, T1547.001, T1012                ✓ full
+  18  T1053                        T1053.005, T1082, T1053                ✓ full
+  19  T1136, T1136.001             T1033, T1087.001, T1543.003            ✗ miss
+  20  T1543, T1543.003             T1036.005, T1543.003, T1036.004        ✓ full
+  21  T1021, T1057                 T1033, T1082, T1059                    ✗ miss
+  22  T1047                        T1047, T1059, T1059.001                ✓ full
+  23  T1550, T1021                 T1133, T1543.003, T1190                ✗ miss
+  24  T1560, T1048                 T1033, T1003, T1140                    ✗ miss
+  25  T1048, T1048.001             T1132.001, T1573.001, T1140            ✗ miss
+  26  T1041, T1048                 T1071, T1027, T1071.001                ✗ miss
+  27  T1087, T1482                 T1033, T1069.002, T1082                ✗ miss
+  28  T1046                        T1082, T1016, T1049                    ✗ miss
+  29  T1087, T1069                 T1033, T1082, T1016                    ✗ miss
+  30  T1071, T1573                 T1071, T1573, T1095                    ✓ full
+  31  T1071.004, T1048             T1071, T1573, T1095                    ~ partial
+  32  T1566, T1566.001             T1204.002, T1566.001, T1598.002        ✓ full
+  33  T1566                        T1204.002, T1566.002, T1566.001        ✓ full
+  34  T1548, T1548.002             T1218.011, T1548.002, T1140            ✓ full
+  35  T1068                        T1190, T1068, T1203                    ✓ full
+  36  T1134, T1134.001             T1036.005, T1543.003, T1055            ✗ miss
+  37  T1027, T1027.002             T1140, T1027, T1027.002                ✓ full
+  38  T1070, T1070.001             T1070.001, T1070, T1562.001            ✓ full
+  39  T1070, T1070.006             T1036.005, T1036, T1070.006            ✓ full
+  40                               T1543.003, T1007, T1083                FP
+
+▶  [D] PIPELINE THROUGHPUT
+------------------------------------------------------------------------
+  Total samples:       40
+  Total time:          24.62s
+  Avg per sample:      615.5ms
+  Median per sample:   68.0ms
+  Min / Max:           48.0ms / 9512.8ms
+
+========================================================================
+  FINAL SUMMARY — COMBINED HYBRID PIPELINE
+========================================================================
+  Technique Precision (strict micro):    0.1667  (16.7%)
+  Technique Recall    (strict micro):    0.3175  (31.7%)
+  Technique F1-Score  (strict micro):    0.2186  (21.9%)
+
+  Technique Precision (lenient micro):   0.1667  (16.7%)
+  Technique Recall    (lenient micro):   0.3175  (31.7%)
+  Technique F1-Score  (lenient micro):   0.2186  (21.9%)
+
+  Severity Accuracy:                     0.6000  (60.0%)
+  Severity F1 (weighted):                0.4721  (47.2%)
+
+  Full technique hits  (lenient):        18/39  (46.2%)
+  Partial hits (≥1 technique correct):   19/39  (48.7%)
+  Complete misses:                        20/39  (51.3%)
+  Avg inference time:                    615.5ms/sample
+========================================================================
+
+  Evaluation complete.

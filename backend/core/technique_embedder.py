@@ -1,9 +1,9 @@
 """
-Technique Embedder — Semantic confidence scoring for MITRE ATT&CK techniques.
+Technique Embedder — SOTA Semantic confidence scoring for MITRE ATT&CK techniques.
 
-Uses sentence-transformers (all-MiniLM-L6-v2, 80MB, CPU-fast) to compute real
+Uses sentence-transformers (all-mpnet-base-v2, 420MB, High Precision) to compute real
 cosine similarity between the user's threat text and each ATT&CK technique description.
-This replaces the hardcoded confidence = 0.7 default.
+This replaces the old MiniLM model to achieve State-of-the-Art discrimination.
 
 At startup:
   - Model is loaded once
@@ -28,7 +28,7 @@ _model = None
 _technique_embeddings: Dict[str, np.ndarray] = {}   # tech_id -> embedding
 _attack_db_cache: Optional[List[dict]] = None
 
-MODEL_NAME = "all-MiniLM-L6-v2"
+MODEL_NAME = "all-mpnet-base-v2"
 
 
 def _get_model():

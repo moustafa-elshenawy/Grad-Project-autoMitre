@@ -1,0 +1,4 @@
+`torch_dtype` is deprecated! Use `dtype` instead!
+Loading weights:   0%|          | 0/272 [00:00<?, ?it/s]Loading weights:   0%|          | 1/272 [00:00<02:14,  2.01it/s]Loading weights:  84%|████████▍ | 228/272 [00:00<00:00, 499.02it/s]Loading weights: 100%|██████████| 272/272 [00:00<00:00, 392.14it/s]
+/Library/Frameworks/Python.framework/Versions/3.13/lib/python3.13/multiprocessing/resource_tracker.py:301: UserWarning: resource_tracker: There appear to be 1 leaked semaphore objects to clean up at shutdown: {'/loky-14993-mbsrehqy'}
+  warnings.warn(

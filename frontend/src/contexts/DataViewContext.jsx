@@ -62,9 +62,9 @@ export function DataViewProvider({ children }) {
     const viewParam = `?view=${effectiveMode}`
     const viewParamAmp = `&view=${effectiveMode}`
 
-    // In 'personal' mode, everyone acts as an admin of their own sandbox.
-    // In 'team' or 'both' mode, you must strictly hold the 'admin' role in your group.
-    const isContextualAdmin = effectiveMode === 'personal' || groupRole === 'admin'
+    // In 'personal' mode (or if no group exists), everyone acts as an admin of their own sandbox.
+    // In 'team' or 'both' mode within a group, you must strictly hold the 'admin' role.
+    const isContextualAdmin = !hasGroup || effectiveMode === 'personal' || groupRole === 'admin'
 
     return (
         <DataViewContext.Provider value={{
