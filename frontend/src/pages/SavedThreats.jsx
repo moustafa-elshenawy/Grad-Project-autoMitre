@@ -1,21 +1,23 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
-import { Database, Search, Clock, ShieldAlert, Activity, ArrowRight, ExternalLink } from 'lucide-react'
+import { Database, Search, Clock, ShieldAlert, Activity, ArrowRight, ExternalLink, Trash2 } from 'lucide-react'
+import { useDataView } from '../contexts/DataViewContext'
 
 export default function SavedThreats() {
     const [threats, setThreats] = useState([])
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
-    const [viewMode, setViewMode] = useState('my_threats')
+    const [threatSource, setThreatSource] = useState('my_threats')
+    const { viewParam, viewParamAmp, viewMode } = useDataView()
 
     useEffect(() => {
         const fetchHistory = async () => {
             setLoading(true)
             try {
                 const token = localStorage.getItem('token')
-                const endpoint = viewMode === 'my_threats'
-                    ? 'http://localhost:8000/api/users/history'
-                    : 'http://localhost:8000/api/intelligence/osint-history'
+                const endpoint = threatSource === 'my_threats'
+                    ? `http://localhost:8000/api/users/history${viewParam}`
+                    : `http://localhost:8000/api/intelligence/osint-history${viewParam}`
 
                 const res = await fetch(endpoint, {
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -31,7 +33,38 @@ export default function SavedThreats() {
             }
         }
         fetchHistory()
-    }, [viewMode])
+    }, [threatSource, viewMode])
+
+    const handleDelete = async (e, id) => {
+        e.preventDefault()
+        e.stopPropagation()
+
+        if (!window.confirm("Are you sure you want to delete this record? This action cannot be undone.")) {
+            return
+        }
+
+        try {
+            const token = localStorage.getItem('token')
+            const endpoint = threatSource === 'my_threats'
+                ? `http://localhost:8000/api/analyze/threats/${id}`
+                : `http://localhost:8000/api/intelligence/osint/${id}`
+
+            const res = await fetch(endpoint, {
+                method: 'DELETE',
+                headers: { 'Authorization': `Bearer ${token}` }
+            })
+
+            if (res.ok) {
+                setThreats(prev => prev.filter(t => t.id !== id))
+            } else {
+                const err = await res.json()
+                alert(`Error: ${err.detail || 'Failed to delete record'}`)
+            }
+        } catch (error) {
+            console.error("Deletion failed:", error)
+            alert("Network error occurred during deletion.")
+        }
+    }
 
     const filteredThreats = threats.filter(t => {
         const term = searchTerm.toLowerCase()
@@ -62,22 +95,22 @@ export default function SavedThreats() {
             <div className="card" style={{ marginBottom: 24, padding: 16 }}>
                 <div style={{ display: 'flex', gap: 16, marginBottom: 16, borderBottom: '1px solid var(--border-dim)', paddingBottom: 16 }}>
                     <button
-                        className={`btn ${viewMode === 'my_threats' ? 'btn-primary' : 'btn-secondary'}`}
+                        className={`btn ${threatSource === 'my_threats' ? 'btn-primary' : 'btn-secondary'}`}
                         onClick={() => {
-                            if (viewMode !== 'my_threats') {
+                            if (threatSource !== 'my_threats') {
                                 setThreats([])
-                                setViewMode('my_threats')
+                                setThreatSource('my_threats')
                             }
                         }}
                     >
                         My Threats
                     </button>
                     <button
-                        className={`btn ${viewMode === 'osint' ? 'btn-primary' : 'btn-secondary'}`}
+                        className={`btn ${threatSource === 'osint' ? 'btn-primary' : 'btn-secondary'}`}
                         onClick={() => {
-                            if (viewMode !== 'osint') {
+                            if (threatSource !== 'osint') {
                                 setThreats([])
-                                setViewMode('osint')
+                                setThreatSource('osint')
                             }
                         }}
                     >
@@ -112,7 +145,7 @@ export default function SavedThreats() {
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                     {filteredThreats.map(t => {
                         // Normalize the schema differences between My Threats and OSINT
-                        const isOsint = viewMode === 'osint';
+                        const isOsint = threatSource === 'osint';
                         const displayId = t.id ? t.id.split('-')[0] : 'unknown';
                         const displaySeverity = (isOsint ? t.severity : t.risk_score?.severity) || 'Unknown';
                         const displayScore = isOsint ? '' : ` (${t.risk_score?.score || 0}/10)`;
@@ -169,16 +202,34 @@ export default function SavedThreats() {
                                         )}
                                     </div>
 
-                                    {isOsint && t.external_url && (
-                                        <a href={t.external_url} target="_blank" rel="noopener noreferrer" className="btn btn-secondary" style={{ padding: '4px 12px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
-                                            <ExternalLink size={14} /> View Source
-                                        </a>
-                                    )}
-                                    {!isOsint && (
-                                        <Link to={`/threat-mapping/${t.id}`} className="btn btn-primary" style={{ padding: '6px 16px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, textDecoration: 'none' }}>
-                                            View Full Analysis <ArrowRight size={14} />
-                                        </Link>
-                                    )}
+                                    <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                                        {isOsint && t.external_url && (
+                                            <a href={t.external_url} target="_blank" rel="noopener noreferrer" className="btn btn-secondary" style={{ padding: '4px 12px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+                                                <ExternalLink size={14} /> View Source
+                                            </a>
+                                        )}
+                                        {!isOsint && (
+                                            <Link to={`/threat-mapping/${t.id}`} className="btn btn-primary" style={{ padding: '6px 16px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0, textDecoration: 'none' }}>
+                                                View Full Analysis <ArrowRight size={14} />
+                                            </Link>
+                                        )}
+                                        <button 
+                                            onClick={(e) => handleDelete(e, t.id)}
+                                            className="btn btn-secondary" 
+                                            style={{ 
+                                                padding: '6px', 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                justifyContent: 'center', 
+                                                color: 'var(--accent-red, #ff4d4d)',
+                                                borderColor: 'rgba(255, 77, 77, 0.2)',
+                                                background: 'rgba(255, 77, 77, 0.05)'
+                                            }}
+                                            title="Delete Record"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         )

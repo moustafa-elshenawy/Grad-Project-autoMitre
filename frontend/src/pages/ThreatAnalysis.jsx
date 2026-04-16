@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Upload, Search, Hash, FileText, ChevronRight, AlertCircle, CheckCircle, ExternalLink, Info, AlertTriangle } from 'lucide-react'
 import axios from 'axios'
+import { useDataView } from '../contexts/DataViewContext'
 
 const API = 'http://localhost:8000'
 
@@ -221,14 +222,16 @@ export function ThreatResultPanel({ result }) {
 
             {/* Framework Tabs */}
             <div className="tabs" style={{ marginBottom: 16 }}>
-                {['attack', 'defend', 'nist', 'owasp', 'mitigations', 'predictions'].map(t => (
-                    <button key={t} className={`tab ${activeTab === t ? 'active' : ''}`} onClick={() => setActiveTab(t)}>
-                        {t === 'attack' ? `ATT&CK (${attack_techniques?.length || 0})` :
-                            t === 'defend' ? `D3FEND (${defend_countermeasures?.length || 0})` :
-                                t === 'nist' ? `NIST (${nist_controls?.length || 0})` :
-                                    t === 'owasp' ? `OWASP (${owasp_items?.length || 0})` :
-                                        t === 'mitigations' ? `Mitigations (${mitigations?.length || 0})` :
-                                            `Predictions (${predicted_steps?.length || 0})`}
+                {[
+                    { id: 'attack', label: `ATT&CK (${attack_techniques?.length || 0})`, show: true },
+                    { id: 'defend', label: `D3FEND (${defend_countermeasures?.length || 0})`, show: defend_countermeasures?.length > 0 },
+                    { id: 'nist', label: `NIST (${nist_controls?.length || 0})`, show: nist_controls?.length > 0 },
+                    { id: 'owasp', label: `OWASP (${owasp_items?.length || 0})`, show: owasp_items?.length > 0 },
+                    { id: 'mitigations', label: `Mitigations (${mitigations?.length || 0})`, show: true },
+                    { id: 'predictions', label: `Predictions (${predicted_steps?.length || 0})`, show: true }
+                ].filter(t => t.show).map(t => (
+                    <button key={t.id} className={`tab ${activeTab === t.id ? 'active' : ''}`} onClick={() => setActiveTab(t.id)}>
+                        {t.label}
                     </button>
                 ))}
             </div>
@@ -374,13 +377,14 @@ export default function ThreatAnalysis() {
     const [savedAttacksList, setSavedAttacksList] = useState([]) // New state to hold list while analyzing
     const [result, setResult] = useState(null)
     const [error, setError] = useState(null)
+    const { viewParam } = useDataView()
 
     const analyze = async (content, endpoint) => {
         setLoading(true); setError(null); setResult(null)
         try {
             const token = localStorage.getItem('token')
             const headers = token ? { Authorization: `Bearer ${token}` } : {}
-            const r = await axios.post(`${API}${endpoint}`, content, { headers })
+            const r = await axios.post(`${API}${endpoint}${viewParam}`, content, { headers })
             if (r.data.success) setResult(r.data.threat_result)
             else setError(r.data.error || 'Analysis failed')
         } catch (e) {
@@ -401,7 +405,7 @@ export default function ThreatAnalysis() {
         try {
             const token = localStorage.getItem('token')
             const headers = token ? { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } : { 'Content-Type': 'multipart/form-data' }
-            const r = await axios.post(`${API}/api/analyze/extract-attacks`, fd, { headers })
+            const r = await axios.post(`${API}/api/analyze/extract-attacks${viewParam}`, fd, { headers })
             if (r.data.success && r.data.attacks && r.data.attacks.length > 0) {
                 setExtractedAttacks(r.data.attacks)
             } else {

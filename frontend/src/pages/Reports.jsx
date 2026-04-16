@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Download, FileJson, FileText, Database, Zap, CheckCircle, Briefcase, ShieldAlert, BarChart, AlertCircle, Info, Loader } from 'lucide-react'
 import axios from 'axios'
+import { useDataView } from '../contexts/DataViewContext'
 
 const API = 'http://localhost:8000'
 
@@ -74,17 +75,24 @@ export default function Reports() {
     const [exportError, setExportError] = useState({})
     const [threats, setThreats] = useState([])
     const [loadingThreats, setLoadingThreats] = useState(true)
+    const { viewParam, viewMode } = useDataView()
 
     // Fetch user's analyzed threats to get real IDs
     useEffect(() => {
-        axios.get(`${API}/api/users/history`, { headers: authHeader() })
-            .then(r => {
+        const fetchHistory = async () => {
+            setLoadingThreats(true)
+            try {
+                const r = await axios.get(`${API}/api/users/history${viewParam}`, { headers: authHeader() })
                 const items = r.data?.items || r.data?.history || r.data || []
                 setThreats(Array.isArray(items) ? items : [])
-            })
-            .catch(() => setThreats([]))
-            .finally(() => setLoadingThreats(false))
-    }, [])
+            } catch (e) {
+                setThreats([])
+            } finally {
+                setLoadingThreats(false)
+            }
+        }
+        fetchHistory()
+    }, [viewMode, viewParam])
 
     const threatIds = threats.map(t => t.id || t.threat_id).filter(Boolean)
     const hasThreats = threatIds.length > 0

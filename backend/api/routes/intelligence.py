@@ -12,7 +12,7 @@ from models.schemas import ChatRequest, ChatResponse, DashboardStats
 from core.ai_chat_engine import generate_chat_response
 from database.config import get_db
 from database.crud import get_dashboard_stats as get_db_stats, get_recent_threats, get_threat_activity, get_attack_tactic_coverage
-from api.dependencies import get_current_user
+from api.dependencies import get_current_user, get_workspace, WorkspaceState
 from database.models import User
 import json
 import os
@@ -90,9 +90,13 @@ async def chat_with_ai(request: ChatRequest, current_user: User = Depends(get_cu
 
 
 @router.get("/dashboard/stats")
-async def get_dashboard_stats(db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Get dashboard statistics."""
-    stats = await get_db_stats(db, current_user.id)
+async def get_dashboard_stats(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    workspace: WorkspaceState = Depends(get_workspace),
+):
+    """Get dashboard statistics, scoped to the user's group if applicable."""
+    stats = await get_db_stats(db, current_user.id, group_id=workspace.group_id, view_mode=workspace.view_mode)
     framework_totals = get_framework_data_totals()
     stats["total_techniques"] = framework_totals["attack"]["total"]
     stats["last_updated"] = datetime.utcnow().isoformat()
@@ -100,21 +104,29 @@ async def get_dashboard_stats(db: AsyncSession = Depends(get_db), current_user: 
 
 
 @router.get("/dashboard/activity")
-async def get_activity(db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Get threat counts grouped by day and severity for the last 7 days."""
-    return await get_threat_activity(db, current_user.id)
+async def get_activity(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    workspace: WorkspaceState = Depends(get_workspace),
+):
+    """Get threat counts grouped by day/severity, scoped to the user's group."""
+    return await get_threat_activity(db, current_user.id, group_id=workspace.group_id, view_mode=workspace.view_mode)
 
 
 @router.get("/intelligence/feed")
-async def get_threat_feed(db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
-    """Get live threat intelligence feed blending OSINT sources + user's own analyzed threats."""
+async def get_threat_feed(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    workspace: WorkspaceState = Depends(get_workspace),
+):
+    """Get live threat intelligence feed blending OSINT sources + analyzed threats."""
     from core.osint_client import fetch_all_osint, RUNTIME_CONFIG
     from database.models import OSINTFeedItem
     from sqlalchemy.future import select
 
     # Run OSINT fetch + DB query concurrently
     osint_task = asyncio.create_task(fetch_all_osint())
-    db_threats = await get_recent_threats(db, limit=20, user_id=current_user.id)
+    db_threats = await get_recent_threats(db, limit=20, user_id=current_user.id, group_id=workspace.group_id, view_mode=workspace.view_mode)
     osint_result = await osint_task
 
     feed_items = []
@@ -296,3 +308,14 @@ async def get_framework_coverage(db: AsyncSession = Depends(get_db), current_use
             "percentage": round((10 / framework_totals["owasp"]) * 100, 1) if framework_totals["owasp"] > 0 else 0
         }
     }
+
+
+@router.delete("/intelligence/osint/{item_id}")
+async def delete_osint_item_endpoint(item_id: str, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Delete a historical OSINT item from the local database."""
+    from database.crud import delete_osint_item
+    success = await delete_osint_item(db, item_id)
+    if not success:
+        raise HTTPException(status_code=404, detail="OSINT item not found or failed to delete.")
+        
+    return {"success": True, "message": "OSINT item deleted successfully."}

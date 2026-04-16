@@ -56,7 +56,39 @@
   --transition-fast: all 0.15s ease;
   --transition-base: all 0.25s ease;
   --transition-slow: all 0.4s ease;
+
+  --topbar-bg: rgba(6, 11, 24, 0.95);
+  --sidebar-bg: rgba(6, 11, 24, 0.98);
 }
+
+[data-theme='light'] {
+  --bg-primary: #f8fafc;
+  --bg-secondary: #ffffff;
+  --bg-tertiary: #f1f5f9;
+  --bg-card: rgba(255, 255, 255, 0.9);
+  --bg-card-hover: rgba(255, 255, 255, 1);
+
+  --accent-blue: #0088cc;
+  --accent-blue-dim: rgba(0, 136, 204, 0.1);
+  --accent-blue-glow: rgba(0, 136, 204, 0.2);
+
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #94a3b8;
+  --text-accent: #0088cc;
+
+  --border-dim: rgba(0, 0, 0, 0.08);
+  --border-accent: rgba(0, 136, 204, 0.3);
+  --border-glow: rgba(0, 136, 204, 0.4);
+
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.05), 0 1px 3px rgba(0, 0, 0, 0.02);
+  --shadow-glow-blue: 0 0 20px rgba(0, 136, 204, 0.1);
+
+  /* Adjust backdrop filters for light mode */
+  --topbar-bg: rgba(255, 255, 255, 0.85);
+  --sidebar-bg: rgba(255, 255, 255, 0.95);
+}
+
 
 html,
 body,
@@ -111,7 +143,7 @@ body,
 
 .topbar {
   height: var(--topbar-height);
-  background: rgba(6, 11, 24, 0.95);
+  background: var(--topbar-bg);
   border-bottom: 1px solid var(--border-dim);
   display: flex;
   align-items: center;
@@ -183,7 +215,7 @@ body,
   top: 0;
   bottom: 0;
   width: var(--sidebar-width);
-  background: rgba(6, 11, 24, 0.98);
+  background: var(--sidebar-bg);
   border-right: 1px solid var(--border-dim);
   display: flex;
   flex-direction: column;

@@ -1,8 +1,54 @@
 import datetime
-from sqlalchemy import Column, String, Float, Integer, ForeignKey, Text, JSON, Boolean
+from sqlalchemy import Column, String, Float, Integer, ForeignKey, Text, JSON, Boolean, UniqueConstraint
 from sqlalchemy.orm import relationship
 from database.config import Base
 import uuid
+
+
+# ── Team Groups ───────────────────────────────────────────────────────────────
+
+class Group(Base):
+    __tablename__ = "groups"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    name = Column(String, nullable=False)
+    description = Column(Text, nullable=True)
+    owner_id = Column(String, ForeignKey("users.id"), nullable=False)
+    created_at = Column(String, default=lambda: datetime.datetime.utcnow().isoformat())
+
+    owner = relationship("User", foreign_keys=[owner_id])
+    memberships = relationship("GroupMembership", back_populates="group", cascade="all, delete")
+    invitations = relationship("GroupInvitation", back_populates="group", cascade="all, delete")
+
+
+class GroupMembership(Base):
+    __tablename__ = "group_memberships"
+    __table_args__ = (UniqueConstraint("group_id", "user_id", name="uq_group_user"),)
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    group_id = Column(String, ForeignKey("groups.id"), nullable=False)
+    user_id = Column(String, ForeignKey("users.id"), nullable=False)
+    role = Column(String, default="analyst")   # admin | analyst
+    joined_at = Column(String, default=lambda: datetime.datetime.utcnow().isoformat())
+
+    group = relationship("Group", back_populates="memberships")
+    user = relationship("User")
+
+
+class GroupInvitation(Base):
+    __tablename__ = "group_invitations"
+
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    group_id = Column(String, ForeignKey("groups.id"), nullable=False)
+    inviter_id = Column(String, ForeignKey("users.id"), nullable=False)
+    invitee_id = Column(String, ForeignKey("users.id"), nullable=True)          # resolved once found
+    invitee_identifier = Column(String, nullable=False)  # username or email typed by admin
+    status = Column(String, default="pending")  # pending | accepted | denied
+    created_at = Column(String, default=lambda: datetime.datetime.utcnow().isoformat())
+
+    group = relationship("Group", back_populates="invitations")
+    inviter = relationship("User", foreign_keys=[inviter_id])
+    invitee = relationship("User", foreign_keys=[invitee_id])
 
 class User(Base):
     __tablename__ = "users"
@@ -30,6 +76,7 @@ class ThreatRecord(Base):
 
     id = Column(String, primary_key=True, index=True)
     user_id = Column(String, ForeignKey("users.id"), index=True, nullable=True)
+    group_id = Column(String, ForeignKey("groups.id"), index=True, nullable=True)
     title = Column(String, nullable=False)
     description = Column(Text, nullable=False)
     input_type = Column(String, nullable=False)

@@ -18,6 +18,7 @@ class UserCreate(UserBase):
 class UserResponse(UserBase):
     id: str
     is_active: bool
+    role: Optional[str] = "analyst"
 
     class Config:
         from_attributes = True

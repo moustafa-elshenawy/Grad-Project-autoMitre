@@ -22,7 +22,7 @@ import uuid
 from fastapi import Depends
 from database.config import get_db
 from database.crud import create_threat_record
-from api.dependencies import get_current_user
+from api.dependencies import get_current_user, get_workspace, WorkspaceState
 from database.models import User
 
 router = APIRouter(prefix="/api/analyze", tags=["analysis"])
@@ -56,15 +56,31 @@ def map_record_to_result(r) -> ThreatResult:
 
 def enrich_threat_result(threat: ThreatResult, technique_ids: list) -> ThreatResult:
     """Enrich a threat result with framework mappings."""
-    mappings = map_all_frameworks(technique_ids)
-    threat.defend_countermeasures = mappings['defend']
-    threat.nist_controls = mappings['nist']
-    threat.owasp_items = mappings['owasp']
+    from core.osint_client import RUNTIME_CONFIG
+    
+    # Check framework toggles from settings
+    attack_enabled = str(RUNTIME_CONFIG.get("framework_attack", "True")).lower() == "true"
+    defend_enabled = str(RUNTIME_CONFIG.get("framework_defend", "True")).lower() == "true"
+    nist_enabled   = str(RUNTIME_CONFIG.get("framework_nist", "True")).lower() == "true"
+    owasp_enabled  = str(RUNTIME_CONFIG.get("framework_owasp", "True")).lower() == "true"
+
+    if attack_enabled:
+        mappings = map_all_frameworks(technique_ids)
+        threat.defend_countermeasures = mappings['defend'] if defend_enabled else []
+        threat.nist_controls = mappings['nist'] if nist_enabled else []
+        threat.owasp_items = mappings['owasp'] if owasp_enabled else []
+    else:
+        # If ATT&CK is disabled, usually everything else also fails as they map FROM attack IDs
+        threat.attack_techniques = []
+        threat.defend_countermeasures = []
+        threat.nist_controls = []
+        threat.owasp_items = []
+        
     return threat
 
 
 @router.post("/text", response_model=AnalysisResponse)
-async def analyze_text(request: TextAnalysisRequest, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+async def analyze_text(request: TextAnalysisRequest, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user), workspace: WorkspaceState = Depends(get_workspace)):
     """Analyze a text description of a threat."""
     try:
         processed = process_input(request.text, InputType.TEXT)
@@ -73,7 +89,7 @@ async def analyze_text(request: TextAnalysisRequest, db: AsyncSession = Depends(
         threat = enrich_threat_result(threat, technique_ids)
         
         # Save to database
-        await create_threat_record(db, threat, current_user.id)
+        await create_threat_record(db, threat, current_user.id, group_id=workspace.group_id)
         
         return AnalysisResponse(success=True, threat_result=threat)
     except Exception as e:
@@ -81,15 +97,13 @@ async def analyze_text(request: TextAnalysisRequest, db: AsyncSession = Depends(
 
 
 @router.post("/hash", response_model=AnalysisResponse)
-async def analyze_hash(request: HashLookupRequest, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+async def analyze_hash(request: HashLookupRequest, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user), workspace: WorkspaceState = Depends(get_workspace)):
     """Look up a malware hash on VirusTotal and analyze it."""
     try:
-        # Get VirusTotal result
         vt_result = lookup_hash(request.hash)
         if not vt_result.get("found"):
             raise HTTPException(status_code=400, detail=vt_result.get("message", "Hash not found in VirusTotal."))
         
-        # Build description from VT result
         verdict = vt_result.get('verdict', 'unknown')
         ratio = vt_result.get('detection_ratio', '0/0')
         description = f"Malware hash analysis: {request.hash}. Detection ratio: {ratio}. Verdict: {verdict}."
@@ -99,7 +113,6 @@ async def analyze_hash(request: HashLookupRequest, db: AsyncSession = Depends(ge
         
         processed = process_input(request.hash, InputType.HASH)
         processed['normalized_text'] = description
-        # Add VT-suggested techniques
         if vt_result.get('suggested_techniques'):
             processed['suggested_techniques'].extend(vt_result['suggested_techniques'])
         
@@ -108,8 +121,7 @@ async def analyze_hash(request: HashLookupRequest, db: AsyncSession = Depends(ge
         threat = enrich_threat_result(threat, technique_ids)
         threat.raw_indicators['virustotal'] = vt_result
         
-        # Save to database
-        await create_threat_record(db, threat, current_user.id)
+        await create_threat_record(db, threat, current_user.id, group_id=workspace.group_id)
         
         return AnalysisResponse(success=True, threat_result=threat)
     except Exception as e:
@@ -188,7 +200,7 @@ async def extract_attacks(file: UploadFile = File(...), context: Optional[str] =
 
 
 @router.post("/file")
-async def analyze_file(file: UploadFile = File(...), context: Optional[str] = Form(None), db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+async def analyze_file(file: UploadFile = File(...), context: Optional[str] = Form(None), db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user), workspace: WorkspaceState = Depends(get_workspace)):
     """Analyze an uploaded file (JSON, STIX, text log)."""
     try:
         filename = file.filename.lower() if file.filename else ""
@@ -197,23 +209,15 @@ async def analyze_file(file: UploadFile = File(...), context: Optional[str] = Fo
         input_type = InputType.TEXT
         text_content = ""
         
-        # Binary PCAP routing
         if filename.endswith(".pcap") or filename.endswith(".pcapng"):
             temp_path = f"/tmp/{uuid.uuid4()}_{filename}"
             with open(temp_path, "wb") as f:
                 f.write(content)
-            
-            # Scapy binary decode to textual representation
             text_content = parse_pcap_bytes(temp_path)
-            
-            # Safely cleanup binary temp file
             if os.path.exists(temp_path):
                 os.remove(temp_path)
         else:
-            # Handle Standard Text/JSON Logs
             text_content = content.decode('utf-8', errors='ignore')
-            
-            # Detect JSON/STIX natively inside string
             try:
                 data = json.loads(text_content)
                 if isinstance(data, dict) and ('objects' in data or data.get('type') == 'bundle'):
@@ -231,8 +235,7 @@ async def analyze_file(file: UploadFile = File(...), context: Optional[str] = Fo
         technique_ids = threat.raw_indicators.get('technique_ids', [])
         threat = enrich_threat_result(threat, technique_ids)
         
-        # Save to database
-        await create_threat_record(db, threat, current_user.id)
+        await create_threat_record(db, threat, current_user.id, group_id=workspace.group_id)
         
         return AnalysisResponse(success=True, threat_result=threat)
     except Exception as e:
@@ -240,7 +243,7 @@ async def analyze_file(file: UploadFile = File(...), context: Optional[str] = Fo
 
 
 @router.post("/json-stix")
-async def analyze_json_stix(request: TextAnalysisRequest, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+async def analyze_json_stix(request: TextAnalysisRequest, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user), workspace: WorkspaceState = Depends(get_workspace)):
     """Analyze JSON or STIX threat intelligence."""
     try:
         processed = process_input(request.text, InputType.JSON)
@@ -248,8 +251,7 @@ async def analyze_json_stix(request: TextAnalysisRequest, db: AsyncSession = Dep
         technique_ids = threat.raw_indicators.get('technique_ids', [])
         threat = enrich_threat_result(threat, technique_ids)
         
-        # Save to database
-        await create_threat_record(db, threat, current_user.id)
+        await create_threat_record(db, threat, current_user.id, group_id=workspace.group_id)
         
         return AnalysisResponse(success=True, threat_result=threat)
     except Exception as e:
@@ -267,3 +269,22 @@ async def get_threat_record(threat_id: str, db: AsyncSession = Depends(get_db), 
         raise HTTPException(status_code=403, detail="Access denied.")
         
     return map_record_to_result(record)
+
+
+@router.delete("/threats/{threat_id}")
+async def delete_threat_record_endpoint(threat_id: str, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Delete a threat record by ID."""
+    from database.crud import get_threat_by_id, delete_threat_record
+    record = await get_threat_by_id(db, threat_id)
+    if not record:
+        raise HTTPException(status_code=404, detail="Threat record not found.")
+    
+    # Check if record belongs to user
+    if record.user_id and record.user_id != current_user.id:
+        raise HTTPException(status_code=403, detail="Access denied.")
+        
+    success = await delete_threat_record(db, threat_id)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to delete threat record.")
+        
+    return {"success": True, "message": "Threat record deleted successfully."}

@@ -14,7 +14,7 @@ from database.models import User, ThreatRecord
 from models.auth import UserProfile, UserProfileUpdate, ChangePasswordRequest
 from models.schemas import ThreatHistoryResponse
 from core.security import verify_password, get_password_hash
-from api.dependencies import get_current_user
+from api.dependencies import get_current_user, get_workspace, WorkspaceState
 import database.crud as crud
 from api.routes.analysis import map_record_to_result
 
@@ -67,10 +67,11 @@ async def change_password(
 async def get_threat_history(
     limit: int = 100,
     current_user: User = Depends(get_current_user),
+    workspace: WorkspaceState = Depends(get_workspace),
     db: AsyncSession = Depends(get_db),
 ):
     """Return historical threat analyses for the current user."""
-    records = await crud.get_recent_threats(db, limit=limit, user_id=current_user.id)
+    records = await crud.get_recent_threats(db, limit=limit, user_id=current_user.id, group_id=workspace.group_id, view_mode=workspace.view_mode)
     
     # We must manually map the nested ORM components into the Pydantic schemas 
     # since SQLite uses relationships that need processing for the `ThreatResult` output format.

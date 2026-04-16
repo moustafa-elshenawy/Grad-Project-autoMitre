@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react'
 import { Info, Clock } from 'lucide-react'
+import { useDataView } from '../contexts/DataViewContext'
 
 function getCellColor(likelihood, impact) {
     const risk = likelihood * impact
@@ -13,6 +14,7 @@ export default function RiskHeatmap() {
     const [selected, setSelected] = useState(null)
     const [threats, setThreats] = useState({})
     const [loading, setLoading] = useState(true)
+    const { viewParam, viewMode } = useDataView()
 
     const likelihoods = [1, 2, 3, 4, 5]
     const impacts = [5, 4, 3, 2, 1] // top to bottom
@@ -25,7 +27,7 @@ export default function RiskHeatmap() {
             setLoading(true)
             try {
                 const token = localStorage.getItem('token')
-                const res = await fetch('http://localhost:8000/api/users/history', {
+                const res = await fetch(`http://localhost:8000/api/users/history${viewParam}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 })
                 if (res.ok) {
@@ -54,7 +56,7 @@ export default function RiskHeatmap() {
             }
         }
         fetchThreats()
-    }, [])
+    }, [viewMode])
 
     const formatTime = (ts) => {
         try {

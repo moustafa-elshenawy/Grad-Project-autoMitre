@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { RefreshCw, ExternalLink, Settings2, ChevronDown, ChevronUp, CheckCircle, XCircle, Loader, Shield, AlertTriangle, Wifi, Database } from 'lucide-react'
 import axios from 'axios'
+import { useDataView } from '../contexts/DataViewContext'
 
 const API = 'http://localhost:8000'
 
@@ -156,12 +157,13 @@ export default function ThreatFeed() {
     const [sevFilter, setSev] = useState('all')
     const [srcFilter, setSrc] = useState('all')
     const [error, setError] = useState(null)
+    const { viewParam, viewMode, isContextualAdmin } = useDataView()
 
     const fetchFeed = useCallback(async () => {
         setLoading(true)
         setError(null)
         try {
-            const r = await axios.get(`${API}/api/intelligence/feed`, { headers: authHeader() })
+            const r = await axios.get(`${API}/api/intelligence/feed${viewParam}`, { headers: authHeader() })
             setThreats(r.data.threats || [])
             setSources(r.data.sources || {})
             setLast(r.data.last_updated)
@@ -170,9 +172,9 @@ export default function ThreatFeed() {
         } finally {
             setLoading(false)
         }
-    }, [])
+    }, [viewParam])
 
-    useEffect(() => { fetchFeed() }, [fetchFeed])
+    useEffect(() => { fetchFeed() }, [fetchFeed, viewMode])
 
     // Apply filters
     const filtered = threats.filter(t => {
@@ -212,7 +214,7 @@ export default function ThreatFeed() {
             </div>
 
             {/* OSINT Config */}
-            <MispConfigPanel onSaved={fetchFeed} />
+            {isContextualAdmin && <MispConfigPanel onSaved={fetchFeed} />}
 
             {/* Source Status Bar */}
             {Object.keys(sources).length > 0 && (

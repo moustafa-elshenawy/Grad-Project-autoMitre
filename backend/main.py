@@ -15,6 +15,8 @@ from api.routes.intelligence import router as intelligence_router
 from api.routes.auth import router as auth_router
 from api.routes.users import router as users_router
 from api.routes.settings import router as settings_router
+from api.routes.admin import router as admin_router
+from api.routes.groups import router as groups_router
 from database.config import engine, Base
 import contextlib
 
@@ -50,6 +52,8 @@ app.include_router(settings_router)
 app.include_router(analysis_router)
 app.include_router(export_router)
 app.include_router(intelligence_router)
+app.include_router(admin_router)
+app.include_router(groups_router)
 
 
 @app.get("/")

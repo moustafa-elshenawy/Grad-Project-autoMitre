@@ -1,10 +1,11 @@
-import { NavLink, useLocation } from 'react-router-dom'
+import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Search, Map, Grid, MessageSquare,
   Rss, FileText, Settings, Shield, Wifi, AlertTriangle,
-  User, LogOut, Database, ShieldCheck
+  User, LogOut, Database, ShieldCheck, Users
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
+import { useDataView } from '../contexts/DataViewContext'
 
 const navItems = [
   {
@@ -29,6 +30,7 @@ const navItems = [
   },
   {
     group: 'System', items: [
+      { to: '/team', icon: Users, label: 'Team' },
       { to: '/settings', icon: Settings, label: 'Settings' },
       { to: '/profile', icon: User, label: 'Profile' },
     ]
@@ -37,6 +39,20 @@ const navItems = [
 
 export default function Sidebar() {
   const { user, logout } = useAuth();
+  const { isContextualAdmin } = useDataView();
+
+  const filteredNavItems = navItems.map(group => {
+    if (group.group === 'System') {
+      return {
+        ...group,
+        items: group.items.filter(item => {
+           if (item.to === '/settings') return isContextualAdmin
+           return true
+        })
+      }
+    }
+    return group
+  })
 
   return (
     <aside className="sidebar">
@@ -51,7 +67,7 @@ export default function Sidebar() {
       </div>
 
       <nav className="sidebar-nav">
-        {navItems.map(group => (
+        {filteredNavItems.map(group => (
           <div key={group.group}>
             <div className="nav-section-label">{group.group}</div>
             {group.items.map(item => (
@@ -76,9 +92,12 @@ export default function Sidebar() {
             <div style={{ flexShrink: 0, width: 32, height: 32, borderRadius: '50%', background: 'linear-gradient(135deg, #3b82f6, #8b5cf6)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 'bold', color: 'white' }}>
               {user?.username?.[0]?.toUpperCase() || 'U'}
             </div>
-            <div style={{ overflow: 'hidden' }}>
+          <div style={{ overflow: 'hidden' }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: '#f0f4ff', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{user?.username || 'User'}</div>
-              <div style={{ fontSize: 11, color: '#94a3b8', whiteSpace: 'nowrap', textOverflow: 'ellipsis' }}>{user?.email}</div>
+              <div style={{ fontSize: 11, color: '#94a3b8', whiteSpace: 'nowrap', textOverflow: 'ellipsis', display: 'flex', alignItems: 'center', gap: 5 }}>
+                {isContextualAdmin && <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 10, background: 'rgba(14,165,233,0.15)', color: '#0ea5e9', textTransform: 'uppercase' }}>Admin</span>}
+                <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{user?.email}</span>
+              </div>
             </div>
           </div>
           <button onClick={logout} style={{ background: 'transparent', border: 'none', color: '#94a3b8', cursor: 'pointer', padding: '4px', flexShrink: 0 }} title="Logout">

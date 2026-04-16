@@ -40,12 +40,18 @@ async def register_user(user_in: UserCreate, db: AsyncSession = Depends(get_db))
     if result.scalars().first():
         raise HTTPException(status_code=400, detail="Email already registered")
         
-    # Create new user
+    # Every self-registered user is system-level admin.
+    # The analyst distinction is managed at the GROUP level (GroupMembership.role),
+    # not at the system level. An admin can demote via /api/admin/users if needed.
+    assigned_role = "admin"
+
     hashed_password = get_password_hash(user_in.password)
     new_user = User(
         username=user_in.username,
         email=user_in.email,
-        hashed_password=hashed_password
+        hashed_password=hashed_password,
+        full_name=getattr(user_in, 'full_name', None),
+        role=assigned_role,
     )
     
     db.add(new_user)
@@ -82,7 +88,7 @@ async def login_for_access_token(
         
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(
-        data={"sub": user.username}, expires_delta=access_token_expires
+        data={"sub": user.username, "role": user.role or "analyst"}, expires_delta=access_token_expires
     )
     
     return {"access_token": access_token, "token_type": "bearer"}

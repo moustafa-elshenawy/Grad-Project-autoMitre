@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { ShieldCheck, Search, Activity, ShieldAlert, Clock, Info, Copy, Check } from 'lucide-react'
+import { useDataView } from '../contexts/DataViewContext'
 
 export default function Mitigations() {
     const [threats, setThreats] = useState([])
     const [loading, setLoading] = useState(true)
     const [searchTerm, setSearchTerm] = useState('')
     const [selectedThreat, setSelectedThreat] = useState(null)
+    const { viewParam, viewMode } = useDataView()
 
     useEffect(() => {
         const fetchHistory = async () => {
@@ -13,7 +15,7 @@ export default function Mitigations() {
             try {
                 const token = localStorage.getItem('token')
                 // Re-use the existing history endpoint which returns detailed AI analyses
-                const res = await fetch('http://localhost:8000/api/users/history', {
+                const res = await fetch(`http://localhost:8000/api/users/history${viewParam}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 })
                 if (res.ok) {
@@ -27,7 +29,7 @@ export default function Mitigations() {
             }
         }
         fetchHistory()
-    }, [])
+    }, [viewMode])
 
     const filteredThreats = threats.filter(t =>
         t.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||

@@ -1,19 +1,20 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import func, desc
+from sqlalchemy import func, desc, or_, and_
 from typing import List, Dict, Any
 
 from database import models
 from models.schemas import ThreatResult, SeverityLevel
 
 
-async def create_threat_record(db: AsyncSession, threat: ThreatResult, user_id: str = None) -> models.ThreatRecord:
+async def create_threat_record(db: AsyncSession, threat: ThreatResult, user_id: str = None, group_id: str = None) -> models.ThreatRecord:
     """Save a new threat analysis result to the database."""
     
     # Create main record
     db_threat = models.ThreatRecord(
         id=threat.id,
         user_id=user_id,
+        group_id=group_id,
         title=threat.title,
         description=threat.description,
         input_type=threat.input_type,
@@ -90,8 +91,10 @@ async def create_threat_record(db: AsyncSession, threat: ThreatResult, user_id: 
 
 from sqlalchemy.orm import selectinload
 
-async def get_recent_threats(db: AsyncSession, limit: int = 20, user_id: str = None) -> List[models.ThreatRecord]:
-    """Get the most recent threat records for the feed."""
+async def get_recent_threats(db: AsyncSession, limit: int = 20, user_id: str = None, group_id: str = None, view_mode: str = "both") -> List[models.ThreatRecord]:
+    """
+    Get the most recent threat records.
+    """
     query = (
         select(models.ThreatRecord)
         .options(selectinload(models.ThreatRecord.techniques))
@@ -99,18 +102,38 @@ async def get_recent_threats(db: AsyncSession, limit: int = 20, user_id: str = N
         .options(selectinload(models.ThreatRecord.mitigations))
         .options(selectinload(models.ThreatRecord.predicted_steps))
     )
-    if user_id:
-        query = query.where(models.ThreatRecord.user_id == user_id)
-        
+    if view_mode == "team" and group_id:
+        query = query.where(models.ThreatRecord.group_id == group_id)
+    elif view_mode == "both" and group_id and user_id:
+        query = query.where(
+            or_(
+                models.ThreatRecord.group_id == group_id,
+                and_(models.ThreatRecord.user_id == user_id, models.ThreatRecord.group_id == None),
+            )
+        )
+    elif user_id:
+        query = query.where(and_(models.ThreatRecord.user_id == user_id, models.ThreatRecord.group_id == None))
+
     query = query.order_by(desc(models.ThreatRecord.timestamp)).limit(limit)
     result = await db.execute(query)
     return result.scalars().all()
 
 
-async def get_dashboard_stats(db: AsyncSession, user_id: str = None) -> Dict[str, Any]:
-    """Calculate dashboard statistics from the database."""
-    
-    base_where = [models.ThreatRecord.user_id == user_id] if user_id else []
+async def get_dashboard_stats(db: AsyncSession, user_id: str = None, group_id: str = None, view_mode: str = "both") -> Dict[str, Any]:
+    """
+    Calculate dashboard statistics.
+    """
+    if view_mode == "team" and group_id:
+        base_where = [models.ThreatRecord.group_id == group_id]
+    elif view_mode == "both" and group_id and user_id:
+        base_where = [or_(
+            models.ThreatRecord.group_id == group_id,
+            and_(models.ThreatRecord.user_id == user_id, models.ThreatRecord.group_id == None),
+        )]
+    elif user_id:
+        base_where = [and_(models.ThreatRecord.user_id == user_id, models.ThreatRecord.group_id == None)]
+    else:
+        base_where = []
     
     # Total threats
     query = select(func.count(models.ThreatRecord.id))
@@ -127,6 +150,7 @@ async def get_dashboard_stats(db: AsyncSession, user_id: str = None) -> Dict[str
             "low_threats": 0,
             "techniques_covered": 0,
             "frameworks_mapped": 4,
+            "active_framework_names": ["ATT&CK", "D3FEND", "NIST", "OWASP"],
             "risk_score_avg": 0.0,
         }
         
@@ -152,6 +176,16 @@ async def get_dashboard_stats(db: AsyncSession, user_id: str = None) -> Dict[str
     if base_where: q_tech = q_tech.where(*base_where)
     unique_techs = (await db.execute(q_tech)).scalar() or 0
     
+    from core.osint_client import RUNTIME_CONFIG
+    
+    frameworks = [
+        ("framework_attack", "ATT&CK"),
+        ("framework_defend", "D3FEND"),
+        ("framework_nist", "NIST"),
+        ("framework_owasp", "OWASP")
+    ]
+    active_names = [name for key, name in frameworks if str(RUNTIME_CONFIG.get(key, "True")).lower() == "true"]
+
     return {
         "total_threats": total_threats,
         "critical_threats": critical,
@@ -159,7 +193,8 @@ async def get_dashboard_stats(db: AsyncSession, user_id: str = None) -> Dict[str
         "medium_threats": medium,
         "low_threats": low,
         "techniques_covered": unique_techs,
-        "frameworks_mapped": 4,
+        "frameworks_mapped": len(active_names),
+        "active_framework_names": active_names,
         "risk_score_avg": round(avg_score, 1)
     }
 
@@ -178,40 +213,39 @@ async def get_threat_by_id(db: AsyncSession, threat_id: str) -> models.ThreatRec
     return result.scalar_one_or_none()
 
 
-async def get_threat_activity(db: AsyncSession, user_id: str = None) -> Dict[str, Any]:
-    """Fetch threat counts grouped by day and severity for the last 7 days."""
+async def get_threat_activity(db: AsyncSession, user_id: str = None, group_id: str = None, view_mode: str = "both") -> Dict[str, Any]:
+    """
+    Fetch threat counts grouped by day/severity for the last 7 days.
+    """
     from datetime import datetime, timedelta
     
     now = datetime.utcnow()
     labels = []
-    # Generate labels for the last 7 days (e.g., Mon, Tue...)
     for i in range(6, -1, -1):
         day = now - timedelta(days=i)
         labels.append(day.strftime("%a"))
     
-    # Initialize datasets with zeros
-    datasets = {
-        "Critical": [0] * 7,
-        "High": [0] * 7,
-        "Medium": [0] * 7,
-        "Low": [0] * 7
-    }
-    
-    # We want data from the last 7 days inclusive of "today"
-    # Start from beginning of the day 6 days ago
+    datasets = {"Critical": [0]*7, "High": [0]*7, "Medium": [0]*7, "Low": [0]*7}
     start_date = (now - timedelta(days=6)).replace(hour=0, minute=0, second=0, microsecond=0)
     start_iso = start_date.isoformat()
     
     query = select(models.ThreatRecord.timestamp, models.ThreatRecord.severity)
-    if user_id:
-        query = query.where(models.ThreatRecord.user_id == user_id)
+    
+    if view_mode == "team" and group_id:
+        query = query.where(models.ThreatRecord.group_id == group_id)
+    elif view_mode == "both" and group_id and user_id:
+        query = query.where(or_(
+            models.ThreatRecord.group_id == group_id,
+            and_(models.ThreatRecord.user_id == user_id, models.ThreatRecord.group_id == None),
+        ))
+    elif user_id:
+        query = query.where(and_(models.ThreatRecord.user_id == user_id, models.ThreatRecord.group_id == None))
     query = query.where(models.ThreatRecord.timestamp >= start_iso)
     
     result = await db.execute(query)
     for ts_str, severity in result.all():
         try:
             ts = datetime.fromisoformat(ts_str)
-            # Calculate day index relative to 6 days ago (0 to 6)
             days_diff = (ts.date() - start_date.date()).days
             if 0 <= days_diff < 7:
                 sev_str = str(severity)
@@ -222,21 +256,27 @@ async def get_threat_activity(db: AsyncSession, user_id: str = None) -> Dict[str
             
     return {
         "labels": labels,
-        "datasets": [
-            {"label": label, "data": data}
-            for label, data in datasets.items()
-        ]
+        "datasets": [{"label": label, "data": data} for label, data in datasets.items()]
     }
 
 
-async def get_attack_tactic_coverage(db: AsyncSession, user_id: str = None) -> Dict[str, int]:
-    """Calculate unique techniques covered per tactic."""
+async def get_attack_tactic_coverage(db: AsyncSession, user_id: str = None, group_id: str = None, view_mode: str = "both") -> Dict[str, int]:
+    """
+    Calculate unique techniques covered per tactic.
+    """
     query = (
         select(models.ThreatTechnique.tactic, func.count(func.distinct(models.ThreatTechnique.technique_id)))
         .join(models.ThreatRecord)
     )
-    if user_id:
-        query = query.where(models.ThreatRecord.user_id == user_id)
+    if view_mode == "team" and group_id:
+        query = query.where(models.ThreatRecord.group_id == group_id)
+    elif view_mode == "both" and group_id and user_id:
+        query = query.where(or_(
+            models.ThreatRecord.group_id == group_id,
+            and_(models.ThreatRecord.user_id == user_id, models.ThreatRecord.group_id == None),
+        ))
+    elif user_id:
+        query = query.where(and_(models.ThreatRecord.user_id == user_id, models.ThreatRecord.group_id == None))
     
     query = query.group_by(models.ThreatTechnique.tactic)
     result = await db.execute(query)
@@ -245,3 +285,29 @@ async def get_attack_tactic_coverage(db: AsyncSession, user_id: str = None) -> D
     for tactic, count in result.all():
         coverage[tactic] = count
     return coverage
+
+
+async def delete_threat_record(db: AsyncSession, threat_id: str) -> bool:
+    """Delete a threat record by ID. Cascades to children."""
+    query = select(models.ThreatRecord).where(models.ThreatRecord.id == threat_id)
+    result = await db.execute(query)
+    record = result.scalar_one_or_none()
+    
+    if record:
+        await db.delete(record)
+        await db.commit()
+        return True
+    return False
+
+
+async def delete_osint_item(db: AsyncSession, item_id: str) -> bool:
+    """Delete an OSINT feed item from the local database."""
+    query = select(models.OSINTFeedItem).where(models.OSINTFeedItem.id == item_id)
+    result = await db.execute(query)
+    item = result.scalar_one_or_none()
+    
+    if item:
+        await db.delete(item)
+        await db.commit()
+        return True
+    return False

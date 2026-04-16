@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react'
-import { Shield, Target, BookOpen, AlertTriangle, ExternalLink, Loader2 } from 'lucide-react'
+import { useState, useEffect, useMemo } from 'react'
+import { Shield, Target, BookOpen, AlertTriangle, ExternalLink, Loader2, ChevronRight, Activity, Zap, CheckCircle2 } from 'lucide-react'
+import { useDataView } from '../contexts/DataViewContext'
 
 // Original static definitions for fallback/reference
 const ALL_TACTICS = [
@@ -63,13 +64,14 @@ export default function FrameworkCoverage() {
     const [d3fendCoverage, setD3fendCoverage] = useState(new Set())
     const [nistCoverage, setNistCoverage] = useState({}) // { 'AC': 3, 'AU': 1 }
     const [owaspCoverage, setOwaspCoverage] = useState(new Set())
+    const { viewParam, viewMode } = useDataView()
 
     useEffect(() => {
         const fetchCoverageData = async () => {
             setLoading(true)
             try {
                 const token = localStorage.getItem('token')
-                const res = await fetch('http://localhost:8000/api/users/history', {
+                const res = await fetch(`http://localhost:8000/api/users/history${viewParam}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 })
                 if (res.ok) {
@@ -175,7 +177,7 @@ export default function FrameworkCoverage() {
             }
         }
         fetchCoverageData()
-    }, [])
+    }, [viewMode])
 
     // Generate the dynamic matrix
     // We intertwine ALL_TACTICS with our discovered techniques to highlight which ones we've actually seen

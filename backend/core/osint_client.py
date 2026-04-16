@@ -37,6 +37,7 @@ logger = logging.getLogger(__name__)
 
 MISP_URL        = os.getenv("MISP_URL", "").rstrip("/")
 MISP_API_KEY    = os.getenv("MISP_API_KEY", "")
+OTX_API_KEY     = os.getenv("OTX_API_KEY", "")
 CACHE_TTL       = int(os.getenv("OSINT_CACHE_TTL", "300"))   # seconds
 
 def _get_otx_key() -> str:
@@ -73,6 +74,10 @@ RUNTIME_CONFIG: Dict[str, Any] = {
     "osint_limit": os.getenv("OSINT_LIMIT", "50"),
     "osint_min_severity": os.getenv("OSINT_MIN_SEVERITY", "Low"),
     "osint_store_locally": os.getenv("OSINT_STORE_LOCALLY", "False"),
+    "framework_attack": os.getenv("FRAMEWORK_ATTACK", "True"),
+    "framework_defend": os.getenv("FRAMEWORK_DEFEND", "True"),
+    "framework_nist": os.getenv("FRAMEWORK_NIST", "True"),
+    "framework_owasp": os.getenv("FRAMEWORK_OWASP", "True"),
 }
 
 # ── Cache ─────────────────────────────────────────────────────────────────────
@@ -314,7 +319,8 @@ async def fetch_urlhaus(client: httpx.AsyncClient) -> List[ThreatFeedItem]:
                 tags      = r.get("tags") or []
                 date_added = r.get("dateadded", "") # Format: "2024-03-21 12:34:56 UTC"
                 threat    = r.get("threat", "malware_download")
-                url_id    = str(hash(url_str))[:12]
+                import hashlib
+                url_id    = hashlib.md5(url_str.encode("utf-8")).hexdigest()[:12]
 
                 if not url_str or host in seen_hosts:
                     continue
@@ -599,9 +605,10 @@ async def fetch_all_osint(include_misp: bool = True) -> Dict[str, Any]:
     if store_locally and deduped:
         try:
             async with SessionLocal() as db:
+                from sqlalchemy import or_
                 for d in deduped:
-                    # Check if it already exists to avoid PK conflict
-                    stmt = select(OSINTFeedItem).filter_by(id=d.id)
+                    # Check if it already exists to avoid PK conflict and duplicate titles
+                    stmt = select(OSINTFeedItem).filter(or_(OSINTFeedItem.id == d.id, OSINTFeedItem.title == d.title))
                     result = await db.execute(stmt)
                     existing = result.scalars().first()
                     
@@ -679,6 +686,10 @@ _ENV_KEY_MAP = {
     "osint_limit":  "OSINT_LIMIT",
     "osint_min_severity": "OSINT_MIN_SEVERITY",
     "osint_store_locally": "OSINT_STORE_LOCALLY",
+    "framework_attack": "FRAMEWORK_ATTACK",
+    "framework_defend": "FRAMEWORK_DEFEND",
+    "framework_nist": "FRAMEWORK_NIST",
+    "framework_owasp": "FRAMEWORK_OWASP",
 }
 
 def update_runtime_config(key: str, value: str):

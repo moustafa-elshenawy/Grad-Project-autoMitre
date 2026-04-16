@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
 import { AlertTriangle, Shield, Activity, TrendingUp, Zap, Globe, Lock, Clock } from 'lucide-react'
 import axios from 'axios'
+import { useDataView } from '../contexts/DataViewContext'
 
 const API = 'http://localhost:8000'
 
@@ -47,19 +48,21 @@ export default function Dashboard() {
     const [stats, setStats] = useState({
         total_threats: 0, critical_threats: 0, high_threats: 0,
         medium_threats: 0, low_threats: 0, techniques_covered: 0,
-        frameworks_mapped: 4, risk_score_avg: 0.0
+        frameworks_mapped: 0, risk_score_avg: 0.0,
+        active_framework_names: []
     })
     const [activity, setActivity] = useState([])
     const [recentThreats, setRecentThreats] = useState([])
     const [tacticCoverage, setTacticCoverage] = useState([])
+    const { viewParam, viewParamAmp, viewMode } = useDataView()
 
     useEffect(() => {
         const token = localStorage.getItem('token')
         const headers = token ? { Authorization: `Bearer ${token}` } : {}
 
-        axios.get(`${API}/api/dashboard/stats`, { headers }).then(r => setStats(r.data)).catch(() => { })
+        axios.get(`${API}/api/dashboard/stats${viewParam}`, { headers }).then(r => setStats(r.data)).catch(() => { })
 
-        axios.get(`${API}/api/dashboard/activity`, { headers }).then(r => {
+        axios.get(`${API}/api/dashboard/activity${viewParam}`, { headers }).then(r => {
             const data = r.data;
             const formatted = data.labels.map((day, idx) => ({
                 day,
@@ -71,11 +74,11 @@ export default function Dashboard() {
             setActivity(formatted)
         }).catch(() => { })
 
-        axios.get(`${API}/api/intelligence/feed`, { headers }).then(r => {
+        axios.get(`${API}/api/intelligence/feed${viewParam}`, { headers }).then(r => {
             setRecentThreats(r.data.threats.slice(0, 5))
         }).catch(() => { })
 
-        axios.get(`${API}/api/framework/coverage`, { headers }).then(r => {
+        axios.get(`${API}/api/framework/coverage${viewParam}`, { headers }).then(r => {
             if (r.data.attack && r.data.attack.by_tactic) {
                 const tactics = Object.entries(r.data.attack.by_tactic).map(([name, stats]) => ({
                     name: TACTIC_DISPLAY_NAMES[name] || name,
@@ -100,7 +103,7 @@ export default function Dashboard() {
             }
         }).catch(() => { })
 
-    }, [])
+    }, [viewMode])
 
     const severityDist = [
         { name: 'Critical', value: stats.critical_threats, color: '#ef4444' },
@@ -154,7 +157,7 @@ export default function Dashboard() {
                     <div className="stat-label">Frameworks Active</div>
                     <div className="stat-number">{stats.frameworks_mapped}</div>
                     <div className="stat-change" style={{ color: '#a78bfa' }}>
-                        <Lock size={11} /> ATT&CK · D3FEND · NIST · OWASP
+                        <Lock size={11} /> {stats.active_framework_names?.length > 0 ? stats.active_framework_names.join(' · ') : 'No frameworks active'}
                     </div>
                 </div>
             </div>
