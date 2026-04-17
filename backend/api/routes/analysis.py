@@ -2,7 +2,7 @@
 Analysis API Routes
 Handles all threat analysis endpoints.
 """
-from fastapi import APIRouter, HTTPException, UploadFile, File, Form
+from fastapi import APIRouter, HTTPException, UploadFile, File, Form, BackgroundTasks
 from typing import Optional
 import json
 
@@ -24,6 +24,7 @@ from database.config import get_db
 from database.crud import create_threat_record
 from api.dependencies import get_current_user, get_workspace, WorkspaceState
 from database.models import User
+from core.audit import log_event
 
 router = APIRouter(prefix="/api/analyze", tags=["analysis"])
 
@@ -80,49 +81,56 @@ def enrich_threat_result(threat: ThreatResult, technique_ids: list) -> ThreatRes
 
 
 @router.post("/text", response_model=AnalysisResponse)
-async def analyze_text(request: TextAnalysisRequest, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user), workspace: WorkspaceState = Depends(get_workspace)):
+async def analyze_text(request: TextAnalysisRequest, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user), workspace: WorkspaceState = Depends(get_workspace)):
     """Analyze a text description of a threat."""
     try:
         processed = process_input(request.text, InputType.TEXT)
         threat = analyze_threat(processed, deep_analysis=request.deep_analysis)
         technique_ids = threat.raw_indicators.get('technique_ids', [])
         threat = enrich_threat_result(threat, technique_ids)
-        
-        # Save to database
+
         await create_threat_record(db, threat, current_user.id, group_id=workspace.group_id)
-        
+        background_tasks.add_task(log_event,
+            category="ANALYSIS", action="analyze_text",
+            user_id=current_user.id, username=current_user.username,
+            details={"threat_id": threat.id, "severity": threat.risk_score.get("severity") if isinstance(threat.risk_score, dict) else None, "techniques": len(threat.attack_techniques)}
+        )
         return AnalysisResponse(success=True, threat_result=threat)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/hash", response_model=AnalysisResponse)
-async def analyze_hash(request: HashLookupRequest, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user), workspace: WorkspaceState = Depends(get_workspace)):
+async def analyze_hash(request: HashLookupRequest, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user), workspace: WorkspaceState = Depends(get_workspace)):
     """Look up a malware hash on VirusTotal and analyze it."""
     try:
         vt_result = lookup_hash(request.hash)
         if not vt_result.get("found"):
             raise HTTPException(status_code=400, detail=vt_result.get("message", "Hash not found in VirusTotal."))
-        
+
         verdict = vt_result.get('verdict', 'unknown')
         ratio = vt_result.get('detection_ratio', '0/0')
         description = f"Malware hash analysis: {request.hash}. Detection ratio: {ratio}. Verdict: {verdict}."
-        
+
         if vt_result.get('names'):
             description += f" Known names: {', '.join(vt_result['names'][:3])}."
-        
+
         processed = process_input(request.hash, InputType.HASH)
         processed['normalized_text'] = description
         if vt_result.get('suggested_techniques'):
             processed['suggested_techniques'].extend(vt_result['suggested_techniques'])
-        
+
         threat = analyze_threat(processed)
         technique_ids = threat.raw_indicators.get('technique_ids', [])
         threat = enrich_threat_result(threat, technique_ids)
         threat.raw_indicators['virustotal'] = vt_result
-        
+
         await create_threat_record(db, threat, current_user.id, group_id=workspace.group_id)
-        
+        background_tasks.add_task(log_event,
+            category="ANALYSIS", action="analyze_hash",
+            user_id=current_user.id, username=current_user.username,
+            details={"hash": request.hash, "verdict": verdict, "detection_ratio": ratio}
+        )
         return AnalysisResponse(success=True, threat_result=threat)
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -272,19 +280,23 @@ async def get_threat_record(threat_id: str, db: AsyncSession = Depends(get_db), 
 
 
 @router.delete("/threats/{threat_id}")
-async def delete_threat_record_endpoint(threat_id: str, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+async def delete_threat_record_endpoint(threat_id: str, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
     """Delete a threat record by ID."""
     from database.crud import get_threat_by_id, delete_threat_record
     record = await get_threat_by_id(db, threat_id)
     if not record:
         raise HTTPException(status_code=404, detail="Threat record not found.")
-    
-    # Check if record belongs to user
+
     if record.user_id and record.user_id != current_user.id:
         raise HTTPException(status_code=403, detail="Access denied.")
-        
+
     success = await delete_threat_record(db, threat_id)
     if not success:
         raise HTTPException(status_code=500, detail="Failed to delete threat record.")
-        
+
+    background_tasks.add_task(log_event,
+        category="THREAT", action="delete_threat",
+        user_id=current_user.id, username=current_user.username,
+        details={"threat_id": threat_id}
+    )
     return {"success": True, "message": "Threat record deleted successfully."}

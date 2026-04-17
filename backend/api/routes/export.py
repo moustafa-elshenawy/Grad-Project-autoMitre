@@ -4,7 +4,7 @@ Handles threat intelligence export to STIX, JSON, CSV, and SIEM platforms.
 All endpoints return StreamingResponse with proper Content-Disposition headers
 so the browser triggers a real file download.
 """
-from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi import APIRouter, HTTPException, Depends, Query, BackgroundTasks
 from fastapi.responses import StreamingResponse, Response
 import json
 import io
@@ -20,85 +20,96 @@ from database.models import User
 from database.config import get_db
 from database.crud import get_threat_by_id, get_recent_threats
 from core.security import SECRET_KEY, ALGORITHM
+from core.audit import log_event
 
 router = APIRouter(prefix="/api/export", tags=["export"])
 
 
 @router.post("/stix")
-async def export_stix(request: ExportRequest, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    """Export threat intelligence as STIX 2.1 bundle (downloadable JSON file)."""
+async def export_stix(request: ExportRequest, background_tasks: BackgroundTasks, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """Export threat intelligence as STIX 2.1 bundle."""
     try:
         real_threats = await _get_real_threats(request.threat_ids, db)
         bundle = export_to_stix(real_threats)
         content = json.dumps(bundle, indent=2).encode("utf-8")
-        return StreamingResponse(
-            io.BytesIO(content),
-            media_type="application/json",
-            headers={"Content-Disposition": "inline; filename=autoMITRE_stix2.1.json"}
+        background_tasks.add_task(log_event,
+            category="EXPORT", action="export_stix",
+            user_id=current_user.id, username=current_user.username,
+            details={"threat_count": len(real_threats), "format": "stix2.1"}
         )
+        return StreamingResponse(io.BytesIO(content), media_type="application/json",
+            headers={"Content-Disposition": "inline; filename=autoMITRE_stix2.1.json"})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/json")
-async def export_json(request: ExportRequest, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    """Export threat intelligence as structured JSON (downloadable file)."""
+async def export_json(request: ExportRequest, background_tasks: BackgroundTasks, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """Export threat intelligence as structured JSON."""
     try:
         real_threats = await _get_real_threats(request.threat_ids, db)
         result = export_to_json(real_threats)
         content = json.dumps(result, indent=2).encode("utf-8")
-        return StreamingResponse(
-            io.BytesIO(content),
-            media_type="application/json",
-            headers={"Content-Disposition": "inline; filename=autoMITRE_export.json"}
+        background_tasks.add_task(log_event,
+            category="EXPORT", action="export_json",
+            user_id=current_user.id, username=current_user.username,
+            details={"threat_count": len(real_threats), "format": "json"}
         )
+        return StreamingResponse(io.BytesIO(content), media_type="application/json",
+            headers={"Content-Disposition": "inline; filename=autoMITRE_export.json"})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/csv")
-async def export_csv(request: ExportRequest, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def export_csv(request: ExportRequest, background_tasks: BackgroundTasks, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     """Export threat intelligence as CSV."""
     try:
         real_threats = await _get_real_threats(request.threat_ids, db)
         csv_content = export_to_csv(real_threats)
-        return StreamingResponse(
-            io.StringIO(csv_content),
-            media_type="text/csv",
-            headers={"Content-Disposition": "inline; filename=autoMITRE_export.csv"}
+        background_tasks.add_task(log_event,
+            category="EXPORT", action="export_csv",
+            user_id=current_user.id, username=current_user.username,
+            details={"threat_count": len(real_threats), "format": "csv"}
         )
+        return StreamingResponse(io.StringIO(csv_content), media_type="text/csv",
+            headers={"Content-Disposition": "inline; filename=autoMITRE_export.csv"})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/splunk")
-async def export_splunk(request: ExportRequest, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
-    """Format threats for Splunk HEC ingestion (downloadable JSON file)."""
+async def export_splunk(request: ExportRequest, background_tasks: BackgroundTasks, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+    """Format threats for Splunk HEC ingestion."""
     try:
         real_threats = await _get_real_threats(request.threat_ids, db)
         result = format_for_splunk(real_threats)
         content = json.dumps({"events": result}, indent=2).encode("utf-8")
-        return StreamingResponse(
-            io.BytesIO(content),
-            media_type="application/json",
-            headers={"Content-Disposition": "inline; filename=autoMITRE_splunk_hec.json"}
+        background_tasks.add_task(log_event,
+            category="EXPORT", action="export_splunk",
+            user_id=current_user.id, username=current_user.username,
+            details={"threat_count": len(real_threats), "format": "splunk_hec"}
         )
+        return StreamingResponse(io.BytesIO(content), media_type="application/json",
+            headers={"Content-Disposition": "inline; filename=autoMITRE_splunk_hec.json"})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.post("/pdf")
-async def export_pdf(request: ExportRequest, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
+async def export_pdf(request: ExportRequest, background_tasks: BackgroundTasks, current_user: User = Depends(get_current_user), db: AsyncSession = Depends(get_db)):
     """Export threat intelligence as a formatted PDF report."""
     try:
         real_threats = await _get_real_threats(request.threat_ids, db)
         report_type = request.format if request.format in ("executive", "technical", "managerial") else "executive"
         pdf_bytes = generate_pdf_report(real_threats, report_type)
-        return StreamingResponse(
-            pdf_bytes,
-            media_type="application/pdf",
-            headers={"Content-Disposition": f"attachment; filename=autoMITRE_{report_type}_report.pdf"}
+        background_tasks.add_task(log_event,
+            category="EXPORT", action="export_pdf",
+            user_id=current_user.id, username=current_user.username,
+            details={"threat_count": len(real_threats), "format": f"pdf_{report_type}"}
         )
+        return StreamingResponse(pdf_bytes, media_type="application/pdf",
+            headers={"Content-Disposition": f"attachment; filename=autoMITRE_{report_type}_report.pdf"})
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -158,47 +169,43 @@ async def export_download_get(format: str, token: str = Query(...), db: AsyncSes
             })
 
 
-        # 4. Generate the right format
+        # 4. Generate the right format and log the export
+        audit_detail = {"format": format, "threat_count": len(real_threats), "user": username}
         if format == "stix":
             bundle = export_to_stix(real_threats)
             content = json.dumps(bundle, indent=2).encode("utf-8")
-            return Response(
-                content=content,
-                media_type="application/json",
-                headers={"Content-Disposition": 'attachment; filename="autoMITRE_stix2.1.json"'}
-            )
+            await log_event(category="EXPORT", action="export_stix_download",
+                user_id=user.id, username=user.username, details=audit_detail)
+            return Response(content=content, media_type="application/json",
+                headers={"Content-Disposition": 'attachment; filename="autoMITRE_stix2.1.json"'})
         elif format == "json":
-            result = export_to_json(real_threats)
-            content = json.dumps(result, indent=2).encode("utf-8")
-            return Response(
-                content=content,
-                media_type="application/json",
-                headers={"Content-Disposition": 'attachment; filename="autoMITRE_export.json"'}
-            )
+            exp_result = export_to_json(real_threats)
+            content = json.dumps(exp_result, indent=2).encode("utf-8")
+            await log_event(category="EXPORT", action="export_json_download",
+                user_id=user.id, username=user.username, details=audit_detail)
+            return Response(content=content, media_type="application/json",
+                headers={"Content-Disposition": 'attachment; filename="autoMITRE_export.json"'})
         elif format == "csv":
             csv_content = export_to_csv(real_threats)
             content = csv_content.encode("utf-8")
-            return Response(
-                content=content,
-                media_type="text/csv",
-                headers={"Content-Disposition": 'attachment; filename="autoMITRE_export.csv"'}
-            )
+            await log_event(category="EXPORT", action="export_csv_download",
+                user_id=user.id, username=user.username, details=audit_detail)
+            return Response(content=content, media_type="text/csv",
+                headers={"Content-Disposition": 'attachment; filename="autoMITRE_export.csv"'})
         elif format == "splunk":
-            result = format_for_splunk(real_threats)
-            content = json.dumps({"events": result}, indent=2).encode("utf-8")
-            return Response(
-                content=content,
-                media_type="application/json",
-                headers={"Content-Disposition": 'attachment; filename="autoMITRE_splunk_hec.json"'}
-            )
+            exp_result = format_for_splunk(real_threats)
+            content = json.dumps({"events": exp_result}, indent=2).encode("utf-8")
+            await log_event(category="EXPORT", action="export_splunk_download",
+                user_id=user.id, username=user.username, details=audit_detail)
+            return Response(content=content, media_type="application/json",
+                headers={"Content-Disposition": 'attachment; filename="autoMITRE_splunk_hec.json"'})
         elif format in ("executive", "technical", "managerial"):
             pdf_bytes = generate_pdf_report(real_threats, format)
             content = pdf_bytes.getvalue()
-            return Response(
-                content=content,
-                media_type="application/pdf",
-                headers={"Content-Disposition": f'attachment; filename="autoMITRE_{format}_report.pdf"'}
-            )
+            await log_event(category="EXPORT", action=f"export_pdf_{format}_download",
+                user_id=user.id, username=user.username, details=audit_detail)
+            return Response(content=content, media_type="application/pdf",
+                headers={"Content-Disposition": f'attachment; filename="autoMITRE_{format}_report.pdf"'})
         else:
             raise HTTPException(status_code=400, detail="Unknown format")
 

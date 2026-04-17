@@ -11,6 +11,7 @@ from database.models import User
 from models.auth import UserCreate, UserResponse, Token
 from core.security import verify_password, get_password_hash, create_access_token, ACCESS_TOKEN_EXPIRE_MINUTES
 from api.dependencies import get_current_user
+from core.audit import log_event
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -30,7 +31,7 @@ async def _update_last_login(user_id: str):
 
 
 @router.post("/register", response_model=UserResponse)
-async def register_user(user_in: UserCreate, db: AsyncSession = Depends(get_db)):
+async def register_user(user_in: UserCreate, background_tasks: BackgroundTasks, db: AsyncSession = Depends(get_db)):
     # Check if user exists
     result = await db.execute(select(User).filter(User.username == user_in.username))
     if result.scalars().first():
@@ -57,7 +58,12 @@ async def register_user(user_in: UserCreate, db: AsyncSession = Depends(get_db))
     db.add(new_user)
     await db.commit()
     await db.refresh(new_user)
-    
+
+    background_tasks.add_task(log_event,
+        category="AUTH", action="register",
+        user_id=new_user.id, username=new_user.username,
+        details={"email": new_user.email, "role": assigned_role}
+    )
     return new_user
 
 
@@ -77,14 +83,25 @@ async def login_for_access_token(
         user = result.scalars().first()
     
     if not user or not verify_password(form_data.password, user.hashed_password):
+        # Log failed login before raising
+        background_tasks.add_task(log_event,
+            category="AUTH", action="login_failure",
+            username=form_data.username, status="failure",
+            details={"reason": "Invalid credentials"}
+        )
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Incorrect username/email or password",
             headers={"WWW-Authenticate": "Bearer"},
         )
-    
+
     # Update last_login_at in the background (non-blocking)
     background_tasks.add_task(_update_last_login, user.id)
+    background_tasks.add_task(log_event,
+        category="AUTH", action="login_success",
+        user_id=user.id, username=user.username,
+        details={"role": user.role}
+    )
         
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = create_access_token(

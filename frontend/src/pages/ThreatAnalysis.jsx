@@ -3,6 +3,7 @@ import { useDropzone } from 'react-dropzone'
 import { Upload, Search, Hash, FileText, ChevronRight, AlertCircle, CheckCircle, ExternalLink, Info, AlertTriangle } from 'lucide-react'
 import axios from 'axios'
 import { useDataView } from '../contexts/DataViewContext'
+import AIPipelineAnimation from '../components/AIPipelineAnimation'
 
 const API = 'http://localhost:8000'
 
@@ -379,17 +380,31 @@ export default function ThreatAnalysis() {
     const [error, setError] = useState(null)
     const { viewParam } = useDataView()
 
+    // Total duration of all pipeline animation stages in ms
+    const PIPELINE_TOTAL_MS = 7300
+
     const analyze = async (content, endpoint) => {
         setLoading(true); setError(null); setResult(null)
+        const startTime = Date.now()
+        let pendingResult = null
+        let pendingError = null
         try {
             const token = localStorage.getItem('token')
             const headers = token ? { Authorization: `Bearer ${token}` } : {}
             const r = await axios.post(`${API}${endpoint}${viewParam}`, content, { headers })
-            if (r.data.success) setResult(r.data.threat_result)
-            else setError(r.data.error || 'Analysis failed')
+            if (r.data.success) pendingResult = r.data.threat_result
+            else pendingError = r.data.error || 'Analysis failed'
         } catch (e) {
-            setError(e.response?.data?.detail || 'Backend unavailable — check that the API server is running on port 8000')
+            pendingError = e.response?.data?.detail || 'Backend unavailable — check that the API server is running on port 8000'
         }
+
+        // Wait for the remainder of the animation if the API returned too fast
+        const elapsed = Date.now() - startTime
+        const remaining = Math.max(0, PIPELINE_TOTAL_MS - elapsed)
+        await new Promise(resolve => setTimeout(resolve, remaining))
+
+        if (pendingResult) setResult(pendingResult)
+        if (pendingError) setError(pendingError)
         setLoading(false)
     }
 
@@ -470,7 +485,7 @@ export default function ThreatAnalysis() {
                             </button>
                             <button className="btn btn-primary" onClick={analyzeText} disabled={!text.trim() || loading} style={{ minWidth: 160, height: 38 }}>
                                 {loading ? (
-                                    <><div className="spinner-small" style={{ marginRight: 8 }} /> AI Analyzing...</>
+                                    <><div className="spinner-small" style={{ marginRight: 8 }} /> Analyzing...</>
                                 ) : (
                                     <><Search size={16} style={{ marginRight: 8 }} /> Analyze Threat</>
                                 )}
@@ -547,7 +562,6 @@ export default function ThreatAnalysis() {
                                     <div className="upload-zone-title">Drop files here or click to browse</div>
                                     <div className="upload-zone-sub">Supports: JSON, STIX 2.1, CSV, text logs, PCAP/PCAPNG network captures</div>
                                 </div>
-                                {loading && <div style={{ textAlign: 'center', padding: 20 }}><div className="spinner" style={{ margin: '0 auto' }} /></div>}
                             </>
                         )}
                     </div>
@@ -560,6 +574,9 @@ export default function ThreatAnalysis() {
                     </div>
                 )}
             </div>
+
+            {/* AI Pipeline Animation — shown while loading */}
+            <AIPipelineAnimation visible={loading} />
 
             <ThreatResultPanel result={result} />
             

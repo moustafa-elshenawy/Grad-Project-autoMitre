@@ -162,15 +162,15 @@ body,
 }
 
 .topbar-content h1 {
-  font-size: 20px;
-  font-weight: 700;
+  font-size: 22px;
+  font-weight: 800;
   color: var(--text-primary);
   letter-spacing: -0.5px;
 }
 
 .topbar-content .subtitle {
-  font-size: 13px;
-  color: var(--text-secondary);
+  font-size: 13.5px;
+  color: #94a3b8;
   margin-top: 2px;
 }
 
@@ -370,12 +370,13 @@ body,
 }
 
 .card-title {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--text-primary);
+  font-size: 15px;
+  font-weight: 700;
+  color: #e2e8f0;
   display: flex;
   align-items: center;
   gap: 8px;
+  letter-spacing: -0.2px;
 }
 
 .card-icon {
@@ -429,21 +430,22 @@ body,
 }
 
 .stat-number {
-  font-size: 36px;
+  font-size: 42px;
   font-weight: 800;
   font-family: 'JetBrains Mono', monospace;
-  letter-spacing: -1px;
+  letter-spacing: -1.5px;
   margin: 8px 0 4px;
-  background: linear-gradient(135deg, var(--text-primary), var(--text-secondary));
+  background: linear-gradient(135deg, #ffffff, #94a3b8);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
 .stat-label {
-  font-size: 12px;
-  color: var(--text-secondary);
-  font-weight: 500;
+  font-size: 13px;
+  color: #94a3b8;
+  font-weight: 600;
+  letter-spacing: 0.2px;
 }
 
 .stat-change {
@@ -467,46 +469,52 @@ body,
   opacity: 0.8;
 }
 
-/* Severity badges */
+/* ── Severity Badges ─────────────────────────────────────────────────── */
 .badge {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 4px;
-  padding: 3px 8px;
+  padding: 3px 10px;
   border-radius: 100px;
-  font-size: 11px;
-  font-weight: 600;
+  font-size: 12px;
+  font-weight: 700;
   letter-spacing: 0.3px;
+  white-space: nowrap;
+  flex-shrink: 0;
+  vertical-align: middle;
+  line-height: 1.4;
 }
 
 .badge-critical {
-  background: rgba(239, 68, 68, 0.15);
-  color: #ef4444;
-  border: 1px solid rgba(239, 68, 68, 0.25);
+  background: rgba(239, 68, 68, 0.2);
+  color: #fca5a5;
+  border: 1px solid rgba(239, 68, 68, 0.5);
+  text-shadow: 0 0 12px rgba(239, 68, 68, 0.5);
 }
 
 .badge-high {
-  background: rgba(249, 115, 22, 0.15);
-  color: #f97316;
-  border: 1px solid rgba(249, 115, 22, 0.25);
+  background: rgba(249, 115, 22, 0.2);
+  color: #fdba74;
+  border: 1px solid rgba(249, 115, 22, 0.5);
 }
 
 .badge-medium {
-  background: rgba(245, 158, 11, 0.15);
-  color: #f59e0b;
-  border: 1px solid rgba(245, 158, 11, 0.25);
+  background: rgba(245, 158, 11, 0.2);
+  color: #fcd34d;
+  border: 1px solid rgba(245, 158, 11, 0.5);
 }
 
 .badge-low {
-  background: rgba(34, 197, 94, 0.15);
-  color: #22c55e;
-  border: 1px solid rgba(34, 197, 94, 0.25);
+  background: rgba(34, 197, 94, 0.2);
+  color: #86efac;
+  border: 1px solid rgba(34, 197, 94, 0.4);
 }
 
 .badge-info {
-  background: rgba(59, 130, 246, 0.15);
-  color: #3b82f6;
-  border: 1px solid rgba(59, 130, 246, 0.25);
+  background: rgba(59, 130, 246, 0.2);
+  color: #93c5fd;
+  border: 1px solid rgba(59, 130, 246, 0.4);
 }
 
 .badge-attack {
@@ -728,16 +736,17 @@ textarea.form-input {
 }
 
 .page-header h1 {
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 800;
-  color: var(--text-primary);
-  letter-spacing: -0.5px;
+  color: #f0f4ff;
+  letter-spacing: -0.8px;
 }
 
 .page-header p {
-  font-size: 13px;
-  color: var(--text-secondary);
-  margin-top: 4px;
+  font-size: 14px;
+  color: #64748b;
+  margin-top: 5px;
+  font-weight: 400;
 }
 
 .page-header-actions {
@@ -1074,11 +1083,13 @@ textarea.form-input {
   }
 }
 
-/* Alert boxes */
+/* ── Alert Boxes — more visible, larger text ──────────────────────── */
 .alert {
-  padding: 12px 16px;
+  padding: 14px 18px;
   border-radius: var(--radius-sm);
-  font-size: 13px;
+  font-size: 13.5px;
+  font-weight: 500;
+  line-height: 1.5;
   display: flex;
   align-items: flex-start;
   gap: 10px;
@@ -1086,27 +1097,27 @@ textarea.form-input {
 }
 
 .alert-critical {
-  background: rgba(239, 68, 68, 0.1);
-  border: 1px solid rgba(239, 68, 68, 0.25);
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.4);
   color: #fca5a5;
 }
 
 .alert-warning {
-  background: rgba(245, 158, 11, 0.1);
-  border: 1px solid rgba(245, 158, 11, 0.25);
-  color: #fcd34d;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #fde68a;
 }
 
 .alert-info {
-  background: rgba(59, 130, 246, 0.1);
-  border: 1px solid rgba(59, 130, 246, 0.25);
-  color: #93c5fd;
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  color: #bfdbfe;
 }
 
 .alert-success {
-  background: rgba(16, 185, 129, 0.1);
-  border: 1px solid rgba(16, 185, 129, 0.25);
-  color: #6ee7b7;
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  color: #a7f3d0;
 }
 
 /* Table */
@@ -1117,30 +1128,31 @@ textarea.form-input {
 table.data-table {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: 13.5px;
 }
 
 .data-table th {
   text-align: left;
   padding: 10px 12px;
-  font-size: 11px;
-  font-weight: 600;
-  color: var(--text-muted);
+  font-size: 11.5px;
+  font-weight: 700;
+  color: #94a3b8;
   letter-spacing: 0.8px;
   text-transform: uppercase;
   border-bottom: 1px solid var(--border-dim);
 }
 
 .data-table td {
-  padding: 12px 12px;
+  padding: 13px 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.03);
-  color: var(--text-secondary);
+  color: #cbd5e1;
+  font-size: 13.5px;
   vertical-align: middle;
 }
 
 .data-table tr:hover td {
   background: rgba(255, 255, 255, 0.02);
-  color: var(--text-primary);
+  color: #f0f4ff;
 }
 
 /* Mitigation steps */
@@ -1441,4 +1453,74 @@ table.data-table {
   gap: 12px;
   color: #f87171;
   font-size: 14px;
+}
+/* ── Workspace Switcher (App.jsx) ────────────────────────────────────────── */
+.workspace-switcher {
+  display: flex;
+  align-items: center;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 24px;
+  padding: 3px;
+  gap: 2px;
+  transition: all 0.2s ease;
+}
+
+.workspace-switcher:hover {
+  border-color: rgba(255,255,255,0.15);
+  background: rgba(255,255,255,0.05);
+}
+
+.workspace-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.workspace-btn:hover:not(:disabled):not([class*="active-"]) {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary);
+  transform: translateY(-1px);
+}
+
+.workspace-btn:active:not(:disabled):not([class*="active-"]) {
+  transform: translateY(1px);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.workspace-btn:disabled {
+  color: #475569;
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.workspace-btn.active-private {
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(99, 102, 241, 0.4);
+  cursor: default;
+}
+
+.workspace-btn.active-team {
+  background: linear-gradient(135deg, #0ea5e9, #06b6d4);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(14, 165, 233, 0.4);
+  cursor: default;
+}
+
+.workspace-btn.active-both {
+  background: linear-gradient(135deg, #f59e0b, #f97316);
+  color: #fff;
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.4);
+  cursor: default;
 }

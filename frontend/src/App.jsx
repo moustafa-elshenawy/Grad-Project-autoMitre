@@ -17,6 +17,7 @@ import Login from './pages/Login'
 import Register from './pages/Register'
 import ThreatMappingDetail from './pages/ThreatMappingDetail'
 import TeamManagement from './pages/TeamManagement'
+import AuditLog from './pages/AuditLog'
 import { useTheme } from './contexts/ThemeContext'
 import { Sun, Moon, Bell, X, Check, Lock, Users } from 'lucide-react'
 import { useState, useEffect, useRef } from 'react'
@@ -122,61 +123,41 @@ function NotificationBell() {
 // ── Workspace Switcher ────────────────────────────────────────────────────────
 function DataViewSwitcher() {
   const { viewMode, setViewMode, hasGroup, groupName } = useDataView()
-  if (!hasGroup) return null
+  
+  const isPrivate = viewMode === 'personal' || !hasGroup
+  const isTeam = viewMode === 'team'
+  const isBoth = viewMode === 'both'
 
   return (
-    <div
-      style={{
-        display: 'flex', alignItems: 'center',
-        background: 'rgba(255,255,255,0.05)',
-        border: '1px solid rgba(255,255,255,0.1)',
-        borderRadius: 24, padding: '3px', gap: 2,
-      }}
+    <div 
+      className="workspace-switcher"
+      title={!hasGroup ? 'Join or create a team to unlock Team & Both views' : undefined}
     >
-      {/* Private button */}
+      {/* Private */}
       <button
+        className={`workspace-btn ${isPrivate ? 'active-private' : ''}`}
         title="View and save only your private records"
         onClick={() => setViewMode('personal')}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 5,
-          padding: '5px 12px', borderRadius: 20, border: 'none', cursor: 'pointer',
-          fontSize: 11, fontWeight: 600, transition: 'all 0.2s',
-          background: viewMode === 'personal' ? 'linear-gradient(135deg,#3b82f6,#6366f1)' : 'transparent',
-          color: viewMode === 'personal' ? '#fff' : '#64748b',
-          boxShadow: viewMode === 'personal' ? '0 2px 8px rgba(99,102,241,0.4)' : 'none',
-        }}
       >
         <Lock size={11} /> Private
       </button>
 
-      {/* Team button */}
+      {/* Team */}
       <button
-        title={`View and save only shared ${groupName || 'Team'} records`}
-        onClick={() => setViewMode('team')}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 5,
-          padding: '5px 12px', borderRadius: 20, border: 'none', cursor: 'pointer',
-          fontSize: 11, fontWeight: 600, transition: 'all 0.2s',
-          background: viewMode === 'team' ? 'linear-gradient(135deg,#0ea5e9,#06b6d4)' : 'transparent',
-          color: viewMode === 'team' ? '#fff' : '#64748b',
-          boxShadow: viewMode === 'team' ? '0 2px 8px rgba(14,165,233,0.4)' : 'none',
-        }}
+        className={`workspace-btn ${isTeam ? 'active-team' : ''}`}
+        title={hasGroup ? `View and save only shared ${groupName || 'Team'} records` : 'Join a team to enable team view'}
+        onClick={hasGroup ? () => setViewMode('team') : undefined}
+        disabled={!hasGroup}
       >
         <Users size={11} /> {groupName || 'Team'}
       </button>
-      
-      {/* Both button */}
+
+      {/* Both */}
       <button
-        title="View both private and team records (saved records go to Team)"
-        onClick={() => setViewMode('both')}
-        style={{
-          display: 'flex', alignItems: 'center', gap: 5,
-          padding: '5px 12px', borderRadius: 20, border: 'none', cursor: 'pointer',
-          fontSize: 11, fontWeight: 600, transition: 'all 0.2s',
-          background: viewMode === 'both' ? 'linear-gradient(135deg,#f59e0b,#f97316)' : 'transparent',
-          color: viewMode === 'both' ? '#fff' : '#64748b',
-          boxShadow: viewMode === 'both' ? '0 2px 8px rgba(245,158,11,0.4)' : 'none',
-        }}
+        className={`workspace-btn ${isBoth ? 'active-both' : ''}`}
+        title={hasGroup ? "View both private and team records (saved records go to Team)" : 'Join a team to enable both view'}
+        onClick={hasGroup ? () => setViewMode('both') : undefined}
+        disabled={!hasGroup}
       >
         Both
       </button>
@@ -267,6 +248,7 @@ function App() {
               <Route path="/settings" element={<AppLayout><Settings /></AppLayout>} />
               <Route path="/profile" element={<AppLayout><Profile /></AppLayout>} />
               <Route path="/team" element={<AppLayout><TeamManagement /></AppLayout>} />
+              <Route path="/audit" element={<AppLayout><AuditLog /></AppLayout>} />
             </Route>
           </Routes>
         </Router>

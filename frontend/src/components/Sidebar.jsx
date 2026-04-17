@@ -2,7 +2,7 @@ import { NavLink } from 'react-router-dom'
 import {
   LayoutDashboard, Search, Map, Grid, MessageSquare,
   Rss, FileText, Settings, Shield, Wifi, AlertTriangle,
-  User, LogOut, Database, ShieldCheck, Users
+  User, LogOut, Database, ShieldCheck, Users, ClipboardList
 } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 import { useDataView } from '../contexts/DataViewContext'
@@ -30,9 +30,10 @@ const navItems = [
   },
   {
     group: 'System', items: [
-      { to: '/team', icon: Users, label: 'Team' },
-      { to: '/settings', icon: Settings, label: 'Settings' },
-      { to: '/profile', icon: User, label: 'Profile' },
+      { to: '/team',     icon: Users,         label: 'Team' },
+      { to: '/audit',    icon: ClipboardList,  label: 'Audit Log',  adminOnly: true },
+      { to: '/settings', icon: Settings,       label: 'Settings',   adminOnly: true },
+      { to: '/profile',  icon: User,           label: 'Profile' },
     ]
   },
 ]
@@ -46,7 +47,7 @@ export default function Sidebar() {
       return {
         ...group,
         items: group.items.filter(item => {
-           if (item.to === '/settings') return isContextualAdmin
+           if (item.adminOnly) return isContextualAdmin
            return true
         })
       }

@@ -24,25 +24,41 @@ export function DataViewProvider({ children }) {
     const [viewMode, setViewModeState] = useState(
         () => localStorage.getItem('autoMITRE_viewMode') || 'both'
     )
-    const [hasGroup, setHasGroup] = useState(false)
-    const [groupName, setGroupName] = useState(null)
-    const [groupRole, setGroupRole] = useState(null)
+    // Seed from cache so the switcher renders immediately on reload
+    const [hasGroup, setHasGroup] = useState(
+        () => localStorage.getItem('autoMITRE_hasGroup') === 'true'
+    )
+    const [groupName, setGroupName] = useState(
+        () => localStorage.getItem('autoMITRE_groupName') || null
+    )
+    const [groupRole, setGroupRole] = useState(
+        () => localStorage.getItem('autoMITRE_groupRole') || null
+    )
+    const [groupLoaded, setGroupLoaded] = useState(false)
 
     // Fast check: does the user belong to a group?
     const checkGroup = useCallback(async () => {
         const token = localStorage.getItem('token')
-        if (!token) return
+        if (!token) { setGroupLoaded(true); return }
         try {
             const res = await fetch('http://localhost:8000/api/groups/mine', {
                 headers: { Authorization: `Bearer ${token}` },
             })
             if (res.ok) {
                 const data = await res.json()
-                setHasGroup(!!data.group)
-                setGroupName(data.group?.name || null)
-                setGroupRole(data.my_role || null)
+                const g = !!data.group
+                const n = data.group?.name || null
+                const r = data.my_role || null
+                setHasGroup(g)
+                setGroupName(n)
+                setGroupRole(r)
+                // Cache in localStorage so next load is instant
+                localStorage.setItem('autoMITRE_hasGroup', String(g))
+                localStorage.setItem('autoMITRE_groupName', n || '')
+                localStorage.setItem('autoMITRE_groupRole', r || '')
             }
         } catch { /* offline / not logged in */ }
+        setGroupLoaded(true)
     }, [])
 
     useEffect(() => {
@@ -73,6 +89,7 @@ export function DataViewProvider({ children }) {
             hasGroup,
             groupName,
             groupRole,
+            groupLoaded,
             viewParam,
             viewParamAmp,
             isContextualAdmin,

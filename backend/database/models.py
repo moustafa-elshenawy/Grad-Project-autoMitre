@@ -188,3 +188,23 @@ class OSINTFeedItem(Base):
     
     # Internal usage tracker
     created_at = Column(String, default=lambda: datetime.datetime.utcnow().isoformat())
+
+
+# ── Audit Log ─────────────────────────────────────────────────────────────────
+
+class AuditLog(Base):
+    """
+    System-wide audit trail.
+    Captures every significant action: auth, analysis, exports, settings, team ops.
+    """
+    __tablename__ = "audit_logs"
+
+    id          = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    category    = Column(String, nullable=False, index=True)   # AUTH | ANALYSIS | EXPORT | SETTINGS | USER | TEAM | ADMIN | THREAT
+    action      = Column(String, nullable=False)                # e.g. "login_success", "export_stix"
+    user_id     = Column(String, ForeignKey("users.id", ondelete="SET NULL"), nullable=True, index=True)
+    username    = Column(String, nullable=True)                 # denormalized for fast display
+    ip_address  = Column(String, nullable=True)
+    status      = Column(String, nullable=False, default="success")  # success | failure | warning
+    details     = Column(JSON, default=dict)                   # free-form context payload
+    timestamp   = Column(String, nullable=False, index=True, default=lambda: datetime.datetime.utcnow().isoformat())
