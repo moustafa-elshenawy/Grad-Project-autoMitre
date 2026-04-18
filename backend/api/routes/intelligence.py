@@ -11,7 +11,7 @@ import random
 from models.schemas import ChatRequest, ChatResponse, DashboardStats
 from core.ai_chat_engine import generate_chat_response
 from database.config import get_db
-from database.crud import get_dashboard_stats as get_db_stats, get_recent_threats, get_threat_activity, get_attack_tactic_coverage
+from database.crud import get_dashboard_stats as get_db_stats, get_recent_threats, get_threat_activity, get_attack_tactic_coverage, get_trend_analysis
 from api.dependencies import get_current_user, get_workspace, WorkspaceState
 from database.models import User
 import json
@@ -111,6 +111,20 @@ async def get_activity(
 ):
     """Get threat counts grouped by day/severity, scoped to the user's group."""
     return await get_threat_activity(db, current_user.id, group_id=workspace.group_id, view_mode=workspace.view_mode)
+
+
+@router.get("/dashboard/trends")
+async def get_trends(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    workspace: WorkspaceState = Depends(get_workspace),
+    days: int = 30
+):
+    """Get historical trend analysis for the past X days."""
+    try:
+        return await get_trend_analysis(db, current_user.id, group_id=workspace.group_id, view_mode=workspace.view_mode, days=days)
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @router.get("/intelligence/feed")

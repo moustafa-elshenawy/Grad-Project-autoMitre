@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
-import { AlertTriangle, Shield, Activity, TrendingUp, Zap, Globe, Lock, Clock } from 'lucide-react'
+import { AlertTriangle, Shield, Activity, TrendingUp, Zap, Globe, Lock, Clock, Target, Crosshair, Compass, Layers, List } from 'lucide-react'
 import axios from 'axios'
 import { useDataView } from '../contexts/DataViewContext'
 
@@ -54,6 +54,7 @@ export default function Dashboard() {
     const [activity, setActivity] = useState([])
     const [recentThreats, setRecentThreats] = useState([])
     const [tacticCoverage, setTacticCoverage] = useState([])
+    const [trends, setTrends] = useState(null)
     const { viewParam, viewParamAmp, viewMode } = useDataView()
 
     useEffect(() => {
@@ -101,6 +102,10 @@ export default function Dashboard() {
                 })
                 setTacticCoverage(tactics)
             }
+        }).catch(() => { })
+
+        axios.get(`${API}/api/dashboard/trends${viewParam}`, { headers }).then(r => {
+            setTrends(r.data)
         }).catch(() => { })
 
     }, [viewMode])
@@ -271,6 +276,87 @@ export default function Dashboard() {
                                 <span style={{ width: 40, textAlign: 'right', color: '#475569', fontFamily: 'JetBrains Mono, monospace' }}>{t.covered}/{t.total}</span>
                             </div>
                         ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* Historical Trend Analysis (FR7.1 / FR7.3) */}
+            <div style={{ marginTop: 24, marginBottom: 40 }}>
+                <h3 style={{ fontSize: 14, color: '#f0f4ff', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                    <Layers size={16} color="#00d4ff" />
+                    Historical Pattern Analysis (30-Day Trends)
+                </h3>
+                <div className="grid-3">
+                    {/* Top Targeted Assets */}
+                    <div className="card">
+                        <div className="card-header">
+                            <div className="card-title"><Target size={15} color="#ef4444" /> Most Targeted Assets</div>
+                        </div>
+                        {trends?.top_targets?.length ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                                {trends.top_targets.map(t => (
+                                    <div key={t.value} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
+                                        <div style={{ display: 'flex', gap: 6, alignItems: 'center', overflow: 'hidden' }}>
+                                            <span style={{ color: '#94a3b8', fontSize: 10, textTransform: 'uppercase', flexShrink: 0 }}>[{t.type}]</span>
+                                            <span style={{ color: '#f0f4ff', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{t.value}</span>
+                                        </div>
+                                        <span style={{ color: '#ef4444', fontWeight: 600, fontFamily: 'JetBrains Mono, monospace' }}>{t.count}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div style={{ padding: 20, textAlign: 'center', color: '#64748b', fontSize: 12 }}>Not enough historical data.</div>
+                        )}
+                    </div>
+
+                    {/* Emerging Techniques */}
+                    <div className="card">
+                        <div className="card-header">
+                            <div className="card-title"><Crosshair size={15} color="#f97316" /> Emerging Threats (Top Techniques)</div>
+                        </div>
+                        {trends?.top_techniques?.length ? (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                {trends.top_techniques.map(t => (
+                                    <div key={t.name}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 4 }}>
+                                            <span style={{ color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 10 }}>{t.name}</span>
+                                            <span style={{ color: '#f97316', fontFamily: 'JetBrains Mono, monospace' }}>{t.count}</span>
+                                        </div>
+                                        <div className="progress-bar">
+                                            <div className="progress-bar-fill" style={{ width: `${(t.count / trends.top_techniques[0].count) * 100}%`, background: '#f97316' }} />
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <div style={{ padding: 20, textAlign: 'center', color: '#64748b', fontSize: 12 }}>Not enough historical data.</div>
+                        )}
+                    </div>
+
+                    {/* Common Predicted Steps (FR7.3) */}
+                    <div className="card">
+                        <div className="card-header">
+                            <div className="card-title"><Compass size={15} color="#10b981" /> Aggregate Prediction Patterns</div>
+                        </div>
+                        {trends?.top_predictions?.length ? (
+                            <div style={{ background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.1)', padding: 16, borderRadius: 8 }}>
+                                <p style={{ color: '#f0f4ff', fontSize: 13, lineHeight: '1.6', margin: 0 }}>
+                                    Based on the collective patterns observed in the current active footprint, the attacker will most likely prioritize 
+                                    <span style={{ color: '#10b981', fontWeight: 600 }}> {trends.top_predictions[0].title} </span> 
+                                    as their core tactical objective. 
+                                    
+                                    {trends.top_predictions.length >= 3 && (
+                                        <span> Subsequently, it is highly probable the progression will navigate towards <span style={{ color: '#10b981', fontWeight: 600 }}>{trends.top_predictions[1].title}</span> and <span style={{ color: '#10b981', fontWeight: 600 }}>{trends.top_predictions[2].title}</span> to achieve full exploitation.</span>
+                                    )}
+                                    
+                                    {trends.top_predictions.length === 2 && (
+                                        <span> Subsequently, it is highly probable the progression will navigate towards <span style={{ color: '#10b981', fontWeight: 600 }}>{trends.top_predictions[1].title}</span> to achieve full exploitation.</span>
+                                    )}
+                                </p>
+                            </div>
+                        ) : (
+                            <div style={{ padding: 20, textAlign: 'center', color: '#64748b', fontSize: 12 }}>No predictions stored yet.</div>
+                        )}
                     </div>
                 </div>
             </div>

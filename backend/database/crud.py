@@ -311,3 +311,72 @@ async def delete_osint_item(db: AsyncSession, item_id: str) -> bool:
         await db.commit()
         return True
     return False
+
+
+async def get_trend_analysis(db: AsyncSession, user_id: str = None, group_id: str = None, view_mode: str = "both", days: int = 30) -> Dict[str, Any]:
+    """Retrieve historical trend analysis for dashboard including top targeted assets, emerging techniques, and predicted steps."""
+    from datetime import datetime, timedelta
+    
+    start_date = (datetime.utcnow() - timedelta(days=days)).isoformat()
+    
+    # Base permission filter for ThreatRecord
+    def get_rbac_filter():
+        if view_mode == "team" and group_id:
+            return models.ThreatRecord.group_id == group_id
+        elif view_mode == "both" and group_id and user_id:
+            return or_(
+                models.ThreatRecord.group_id == group_id,
+                and_(models.ThreatRecord.user_id == user_id, models.ThreatRecord.group_id == None)
+            )
+        else:
+            return and_(models.ThreatRecord.user_id == user_id, models.ThreatRecord.group_id == None)
+            
+    rbac_filter = get_rbac_filter()
+    time_filter = models.ThreatRecord.timestamp >= start_date
+    
+    # 1. Top Targeted Entities (excluding generics like tool/malware to focus on specific assets if possible, or just ranking all)
+    stmt_entities = (
+        select(models.ThreatEntity.value, models.ThreatEntity.type, func.count("*").label("cnt"))
+        .select_from(models.ThreatEntity)
+        .join(models.ThreatRecord, models.ThreatEntity.threat_id == models.ThreatRecord.id)
+        .where(and_(rbac_filter, time_filter))
+        .where(models.ThreatEntity.type.notin_(["malware", "tool", "cve"])) # Filter noisy ones to find systems/targets
+        .group_by(models.ThreatEntity.value, models.ThreatEntity.type)
+        .order_by(desc("cnt"))
+        .limit(8)
+    )
+    res_ent = await db.execute(stmt_entities)
+    top_targets = [{"value": row[0], "type": row[1], "count": row[2]} for row in res_ent.all()]
+    
+    # 2. Emerging Techniques
+    stmt_tech = (
+        select(models.ThreatTechnique.name, func.count("*").label("cnt"))
+        .select_from(models.ThreatTechnique)
+        .join(models.ThreatRecord, models.ThreatTechnique.threat_id == models.ThreatRecord.id)
+        .where(and_(rbac_filter, time_filter))
+        .group_by(models.ThreatTechnique.name)
+        .order_by(desc("cnt"))
+        .limit(8)
+    )
+    res_tech = await db.execute(stmt_tech)
+    top_techniques = [{"name": row[0], "count": row[1]} for row in res_tech.all()]
+    
+    # 3. Accumulated Predictions (FR7.3)
+    stmt_pred = (
+        select(models.ThreatPredictedStep.title, func.count("*").label("cnt"))
+        .select_from(models.ThreatPredictedStep)
+        .join(models.ThreatRecord, models.ThreatPredictedStep.threat_id == models.ThreatRecord.id)
+        .where(and_(rbac_filter, time_filter))
+        .group_by(models.ThreatPredictedStep.title)
+        .order_by(desc("cnt"))
+        .limit(8)
+    )
+    res_pred = await db.execute(stmt_pred)
+    top_predictions = [{"title": row[0], "count": row[1]} for row in res_pred.all()]
+    
+    return {
+        "days": days,
+        "top_targets": top_targets,
+        "top_techniques": top_techniques,
+        "top_predictions": top_predictions
+    }
