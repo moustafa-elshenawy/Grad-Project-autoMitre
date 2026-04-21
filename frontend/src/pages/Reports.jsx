@@ -175,8 +175,30 @@ export default function Reports() {
                                     <Download size={14} /> Export {fmt.name}
                                 </button>
                             ) : (
-                                <a
-                                    href={downloadUrl}
+                                <button
+                                    onClick={async (e) => {
+                                        e.preventDefault();
+                                        setExporting(prev => ({ ...prev, [fmt.id]: true }));
+                                        try {
+                                            const response = await axios.get(downloadUrl, {
+                                                responseType: 'blob', // Force Axios to parse response as a Blob
+                                                headers: authHeader()
+                                            });
+                                            // Synthesize a blob URL within the same origin to bypass Chrome's cross-origin drop policy
+                                            const blobUrl = window.URL.createObjectURL(new Blob([response.data]));
+                                            const link = document.createElement('a');
+                                            link.href = blobUrl;
+                                            link.setAttribute('download', filename);
+                                            document.body.appendChild(link);
+                                            link.click();
+                                            document.body.removeChild(link);
+                                            window.URL.revokeObjectURL(blobUrl);
+                                        } catch (err) {
+                                            console.error("Export download failed:", err);
+                                        } finally {
+                                            setExporting(prev => ({ ...prev, [fmt.id]: false }));
+                                        }
+                                    }}
                                     className="btn btn-secondary"
                                     style={{ 
                                         width: '100%', 
@@ -184,12 +206,12 @@ export default function Reports() {
                                         border: `1px solid ${fmt.color}33`,
                                         display: 'flex',
                                         alignItems: 'center',
-                                        gap: '6px',
-                                        textDecoration: 'none'
+                                        gap: '6px'
                                     }}
                                 >
-                                    <Download size={14} /> Export {fmt.name}
-                                </a>
+                                    {exporting[fmt.id] ? <div className="spinner-small" /> : <Download size={14} />}
+                                    {exporting[fmt.id] ? 'Downloading...' : `Export ${fmt.name}`}
+                                </button>
                             )}
                         </div>
                     );

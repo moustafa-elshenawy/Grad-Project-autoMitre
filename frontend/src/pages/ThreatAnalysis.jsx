@@ -1,6 +1,6 @@
 import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
-import { Upload, Search, Hash, FileText, ChevronRight, AlertCircle, CheckCircle, ExternalLink, Info, AlertTriangle } from 'lucide-react'
+import { Upload, Search, Hash, FileText, ChevronRight, AlertCircle, CheckCircle, ExternalLink, Info, AlertTriangle, Globe } from 'lucide-react'
 import axios from 'axios'
 import { useDataView } from '../contexts/DataViewContext'
 import AIPipelineAnimation from '../components/AIPipelineAnimation'
@@ -372,6 +372,10 @@ export default function ThreatAnalysis() {
     const [tab, setTab] = useState('text')
     const [text, setText] = useState('')
     const [hash, setHash] = useState('')
+    const [apiTool, setApiTool] = useState('iriusrisk')
+    const [apiUrl, setApiUrl] = useState('')
+    const [apiToken, setApiToken] = useState('')
+    const [apiProjectId, setApiProjectId] = useState('')
     const [loading, setLoading] = useState(false)
     const [deepAnalysis, setDeepAnalysis] = useState(true)
     const [extractedAttacks, setExtractedAttacks] = useState([])
@@ -379,6 +383,29 @@ export default function ThreatAnalysis() {
     const [result, setResult] = useState(null)
     const [error, setError] = useState(null)
     const { viewParam } = useDataView()
+
+    const analyzeApiTool = async () => {
+        setLoading(true); setError(null); setResult(null); setExtractedAttacks([]); setSavedAttacksList([])
+        try {
+            const token = localStorage.getItem('token')
+            const headers = token ? { Authorization: `Bearer ${token}` } : {}
+            const payload = {
+                tool_type: apiTool,
+                url: apiUrl,
+                api_token: apiToken,
+                project_id: apiProjectId
+            }
+            const r = await axios.post(`${API}/api/analyze/import-tool-api${viewParam}`, payload, { headers })
+            if (r.data.success && r.data.attacks && r.data.attacks.length > 0) {
+                setExtractedAttacks(r.data.attacks)
+            } else {
+                setError(r.data.error || 'No attacks could be extracted from this API.')
+            }
+        } catch (e) {
+            setError(e.response?.data?.detail || 'Failed to fetch from API - Check credentials and URL formatting')
+        }
+        setLoading(false)
+    }
 
     // Total duration of all pipeline animation stages in ms
     const PIPELINE_TOTAL_MS = 7300
@@ -466,7 +493,7 @@ export default function ThreatAnalysis() {
 
             <div className="card">
                 <div className="tabs" style={{ marginBottom: 20 }}>
-                    {[['text', <FileText size={14} />, 'Text / Description'], ['hash', <Hash size={14} />, 'Malware Hash'], ['file', <Upload size={14} />, 'File Upload']].map(([id, icon, label]) => (
+                    {[['text', <FileText size={14} />, 'Text / Description'], ['hash', <Hash size={14} />, 'Malware Hash'], ['file', <Upload size={14} />, 'File Upload'], ['api', <Globe size={14} />, 'API / Models']].map(([id, icon, label]) => (
                         <button key={id} className={`tab ${tab === id ? 'active' : ''}`} onClick={() => setTab(id)} style={{ display: 'flex', alignItems: 'center', gap: 5, justifyContent: 'center' }}>
                             {icon}{label}
                         </button>
@@ -511,58 +538,104 @@ export default function ThreatAnalysis() {
                     </div>
                 )}
 
-                {tab === 'file' && (
-                    <div>
-                        {extractedAttacks.length > 0 ? (
-                            <div className="extracted-attacks-list">
-                                <h3 style={{ marginBottom: 16, fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <AlertTriangle size={18} color="#f59e0b" />
-                                    Detected Multiple Threats ({extractedAttacks.length})
-                                </h3>
-                                <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 20 }}>
-                                    Select a specific attack block from the file to perform deep technical analysis and framework mapping.
-                                </p>
-                                
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                                    {extractedAttacks.map((attack) => (
-                                        <div 
-                                            key={attack.id} 
-                                            className="card" 
-                                            style={{ cursor: 'pointer', padding: 16, transition: 'all 0.2s', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                                            onClick={() => analyzeExtractedAttack(attack)}
-                                            onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent-blue)'; e.currentTarget.style.background = 'rgba(0,212,255,0.05)' }}
-                                            onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.background = 'var(--bg-secondary)' }}
-                                        >
-                                            <div style={{ flex: 1 }}>
-                                                <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
-                                                    <SeverityBadge severity={attack.severity_estimate} />
-                                                    <span style={{ fontWeight: 600, fontSize: 15, color: '#f8fafc' }}>{attack.title}</span>
-                                                </div>
-                                                <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>{attack.description}</p>
-                                            </div>
-                                            <div style={{ marginLeft: 16, color: 'var(--accent-blue)', opacity: 0.8 }}>
-                                                <ChevronRight size={20} />
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
-                                <button 
-                                    className="btn btn-secondary" 
-                                    style={{ marginTop: 20 }}
-                                    onClick={() => setExtractedAttacks([])}
+                {(tab === 'file' || tab === 'api') && extractedAttacks.length > 0 && (
+                    <div className="extracted-attacks-list">
+                        <h3 style={{ marginBottom: 16, fontSize: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <AlertTriangle size={18} color="#f59e0b" />
+                            Detected Multiple Threats ({extractedAttacks.length})
+                        </h3>
+                        <p style={{ fontSize: 13, color: '#94a3b8', marginBottom: 20 }}>
+                            Select a specific attack block from the {tab === 'file' ? 'file' : 'API'} to perform deep technical analysis and framework mapping.
+                        </p>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            {extractedAttacks.map((attack) => (
+                                <div 
+                                    key={attack.id} 
+                                    className="card" 
+                                    style={{ cursor: 'pointer', padding: 16, transition: 'all 0.2s', border: '1px solid rgba(255,255,255,0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                                    onClick={() => analyzeExtractedAttack(attack)}
+                                    onMouseEnter={(e) => { e.currentTarget.style.borderColor = 'var(--accent-blue)'; e.currentTarget.style.background = 'rgba(0,212,255,0.05)' }}
+                                    onMouseLeave={(e) => { e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'; e.currentTarget.style.background = 'var(--bg-secondary)' }}
                                 >
-                                    Cancel & Upload Different File
-                                </button>
-                            </div>
-                        ) : (
-                            <>
-                                <div {...getRootProps()} className={`upload-zone ${isDragActive ? 'drag-active' : ''}`}>
-                                    <input {...getInputProps()} />
-                                    <Upload className="upload-zone-icon" />
-                                    <div className="upload-zone-title">Drop files here or click to browse</div>
-                                    <div className="upload-zone-sub">Supports: JSON, STIX 2.1, CSV, text logs, PCAP/PCAPNG network captures</div>
+                                    <div style={{ flex: 1 }}>
+                                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                                            <SeverityBadge severity={attack.severity_estimate} />
+                                            <span style={{ fontWeight: 600, fontSize: 15, color: '#f8fafc' }}>{attack.title}</span>
+                                        </div>
+                                        <p style={{ fontSize: 13, color: '#94a3b8', margin: 0 }}>{attack.description}</p>
+                                    </div>
+                                    <div style={{ marginLeft: 16, color: 'var(--accent-blue)', opacity: 0.8 }}>
+                                        <ChevronRight size={20} />
+                                    </div>
                                 </div>
-                            </>
+                            ))}
+                        </div>
+                        <button 
+                            className="btn btn-secondary" 
+                            style={{ marginTop: 20 }}
+                            onClick={() => setExtractedAttacks([])}
+                        >
+                            Cancel & Choose Different Source
+                        </button>
+                    </div>
+                )}
+
+                {tab === 'file' && extractedAttacks.length === 0 && (
+                    <div>
+                        <div {...getRootProps()} className={`upload-zone ${isDragActive ? 'drag-active' : ''}`}>
+                            <input {...getInputProps()} />
+                            <Upload className="upload-zone-icon" />
+                            <div className="upload-zone-title">Drop files here or click to browse</div>
+                            <div className="upload-zone-sub">Supports: JSON, STIX 2.1, CSV, text logs, PCAP/PCAPNG network captures</div>
+                        </div>
+                    </div>
+                )}
+
+                {tab === 'api' && extractedAttacks.length === 0 && (
+                    <div>
+                        <div style={{ marginBottom: 20 }}>
+                            <label className="form-label">Threat Modeling Framework Input</label>
+                            <select className="form-input" style={{ marginBottom: 16 }} value={apiTool} onChange={(e) => setApiTool(e.target.value)}>
+                                <option value="iriusrisk">IriusRisk (SaaS REST API)</option>
+                                <option value="threat_dragon">OWASP Threat Dragon (Public JSON URL)</option>
+                                <option value="ms_tmt">Microsoft Threat Modeling Tool (.tm7)</option>
+                            </select>
+
+                            {apiTool === 'iriusrisk' && (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                                    <input className="form-input" placeholder="Instance URL (e.g., https://mycorp.iriusrisk.com)" value={apiUrl} onChange={e => setApiUrl(e.target.value)} />
+                                    <input className="form-input" type="password" placeholder="API Token (v1 Token)" value={apiToken} onChange={e => setApiToken(e.target.value)} />
+                                    <input className="form-input" placeholder="Project ID / Reference ID" value={apiProjectId} onChange={e => setApiProjectId(e.target.value)} />
+                                </div>
+                            )}
+
+                            {apiTool === 'threat_dragon' && (
+                                <div>
+                                    <input className="form-input" placeholder="Threat Dragon JSON File URL" value={apiUrl} onChange={e => setApiUrl(e.target.value)} />
+                                </div>
+                            )}
+
+                            {apiTool === 'ms_tmt' && (
+                                <div>
+                                    <div className="alert alert-info" style={{ marginBottom: 16 }}>
+                                        <Info size={16} style={{ flexShrink: 0 }} />
+                                        <span style={{ fontSize: 13 }}>Microsoft Threat Modeling Tool (TMT) does not operate via REST APIs. Export your model as a <b>.tm7</b> XML file and drop it below.</span>
+                                    </div>
+                                    <div {...getRootProps()} className={`upload-zone ${isDragActive ? 'drag-active' : ''}`}>
+                                        <input {...getInputProps()} />
+                                        <Upload className="upload-zone-icon" />
+                                        <div className="upload-zone-title">Drop TMT (.tm7) file here or click to browse</div>
+                                        <div className="upload-zone-sub">Our engine natively extracts threats using XML structure matching.</div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+
+                        {apiTool !== 'ms_tmt' && (
+                            <button className="btn btn-primary" onClick={analyzeApiTool} disabled={!apiUrl.trim() || loading} style={{ width: '100%', justifyContent: 'center' }}>
+                                {loading ? <><div className="spinner-small" style={{ marginRight: 8 }} /> Fetching from API...</> : 'Fetch & Analyze External Threats'}
+                            </button>
                         )}
                     </div>
                 )}

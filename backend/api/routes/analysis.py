@@ -206,6 +206,46 @@ async def extract_attacks(file: UploadFile = File(...), context: Optional[str] =
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+from pydantic import BaseModel
+
+class ToolImportRequest(BaseModel):
+    tool_type: str # "iriusrisk" or "threat_dragon"
+    url: str
+    api_token: Optional[str] = None
+    project_id: Optional[str] = None
+    context: Optional[str] = None
+
+@router.post("/import-tool-api", response_model=None)
+async def import_tool_api(request: ToolImportRequest, db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user)):
+    """Fetch external Threat Models directly from an API and extract attacks via LLM."""
+    try:
+        from core.threat_model_api import fetch_iriusrisk_threats, fetch_threat_dragon_url
+        from core.nano_llm_engine import nano_llm
+        from models.schemas import ExtractedAttacksResponse, ExtractedAttack
+        
+        raw_text = ""
+        if request.tool_type == "iriusrisk":
+            if not request.api_token or not request.project_id:
+                raise ValueError("IriusRisk requires both API Token and Project ID.")
+            raw_text = await fetch_iriusrisk_threats(request.url, request.api_token, request.project_id)
+        elif request.tool_type == "threat_dragon":
+            raw_text = await fetch_threat_dragon_url(request.url)
+        else:
+            raise ValueError(f"Unknown tool type: {request.tool_type}")
+
+        if request.context:
+            raw_text = f"Context: {request.context}\n\n{raw_text}"
+            
+        attacks = nano_llm.identify_attacks(raw_text)
+        validated_attacks = [ExtractedAttack(**a) for a in attacks]
+            
+        if not validated_attacks:
+            raise ValueError("No viable threats could be parsed from the remote source.")
+            
+        return ExtractedAttacksResponse(success=True, attacks=validated_attacks)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
 
 @router.post("/file")
 async def analyze_file(file: UploadFile = File(...), context: Optional[str] = Form(None), db: AsyncSession = Depends(get_db), current_user: User = Depends(get_current_user), workspace: WorkspaceState = Depends(get_workspace)):
