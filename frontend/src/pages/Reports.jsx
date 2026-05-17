@@ -34,7 +34,7 @@ const EXPORT_FORMATS = [
         id: 'stix',
         icon: <Database size={22} />,
         name: 'STIX 2.1',
-        color: '#00d4ff',
+        color: '#0077BC',
         endpoint: '/api/export/stix',
         contains: ['STIX 2.1 bundle format', 'Compatible with TAXII servers', 'Threat actor objects', 'Indicator & relationship objects'],
     },
@@ -221,13 +221,13 @@ export default function Reports() {
             {/* SIEM Integration Guide */}
             <div className="card">
                 <div className="card-header">
-                    <div className="card-title"><Zap size={15} color="#00d4ff" /> SIEM Platform Integration Guide</div>
+                    <div className="card-title"><Zap size={15} color="#0077BC" /> SIEM Platform Integration Guide</div>
                 </div>
                 <div className="grid-3">
                     {[
                         { name: 'Splunk', steps: ['Export Splunk HEC format above', 'Configure HEC token in Splunk', 'POST events to /services/collector', 'Build ATT&CK dashboards'], color: '#f97316' },
-                        { name: 'Microsoft Sentinel', steps: ['Export STIX 2.1 bundle', 'Use Logic Apps TAXII connector', 'Map IoCs to Sentinel watchlists', 'Enable ATT&CK analytics rules'], color: '#00d4ff' },
-                        { name: 'IBM QRadar', steps: ['Export JSON format', 'Use QRadar REST API /api/data_exports', 'Map fields to QRadar categories', 'Configure offense detection rules'], color: '#7c3aed' },
+                        { name: 'Microsoft Sentinel', steps: ['Export STIX 2.1 bundle', 'Use Logic Apps TAXII connector', 'Map IoCs to Sentinel watchlists', 'Enable ATT&CK analytics rules'], color: '#0077BC' },
+                        { name: 'IBM QRadar', steps: ['Export JSON format', 'Use QRadar REST API /api/data_exports', 'Map fields to QRadar categories', 'Configure offense detection rules'], color: '#009866' },
                     ].map(siem => (
                         <div key={siem.name} style={{ padding: 14, background: 'rgba(255,255,255,0.02)', border: `1px solid ${siem.color}22`, borderRadius: 8 }}>
                             <h4 style={{ fontSize: 13, fontWeight: 700, color: siem.color, marginBottom: 10 }}>{siem.name}</h4>
@@ -243,7 +243,7 @@ export default function Reports() {
 
             {/* What's in each report info box */}
             <div style={{ marginTop: 20, padding: '14px 18px', borderRadius: 10, background: 'rgba(0,212,255,0.04)', border: '1px solid rgba(0,212,255,0.12)', display: 'flex', gap: 10 }}>
-                <Info size={15} color="#00d4ff" style={{ flexShrink: 0, marginTop: 2 }} />
+                <Info size={15} color="#0077BC" style={{ flexShrink: 0, marginTop: 2 }} />
                 <p style={{ fontSize: 12, color: '#64748b', margin: 0, lineHeight: 1.6 }}>
                     <strong style={{ color: '#94a3b8' }}>Reports are built from your analyzed threats.</strong> To get more data in your exports, run Threat Analysis on more inputs (text, CVEs, PCAPs) — each analysis adds a record to your export pool. The <strong style={{ color: '#d946ef' }}>Technical PDF</strong> includes the most detail; the <strong style={{ color: '#f43f5e' }}>Executive PDF</strong> is best for sharing with leadership.
                 </p>

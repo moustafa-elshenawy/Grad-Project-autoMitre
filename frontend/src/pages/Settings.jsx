@@ -113,7 +113,7 @@ export default function Settings() {
             {/* API Keys */}
             <div className="card" style={{ marginBottom: 20, opacity: isAdmin ? 1 : 0.65, pointerEvents: isAdmin ? 'auto' : 'none' }}>
                 <div className="card-header" style={{ marginBottom: 20 }}>
-                    <div className="card-title"><Key size={16} color="#00d4ff" /> API Keys & Integrations{!isAdmin && <Lock size={12} style={{ marginLeft: 6, color: '#f59e0b' }} />}</div>
+                    <div className="card-title"><Key size={16} color="#0077BC" /> API Keys & Integrations{!isAdmin && <Lock size={12} style={{ marginLeft: 6, color: '#f59e0b' }} />}</div>
                 </div>
 
                 <div className="form-group">
@@ -149,7 +149,7 @@ export default function Settings() {
             {/* Framework Settings */}
             <div className="card" style={{ marginBottom: 20, opacity: isAdmin ? 1 : 0.65, pointerEvents: isAdmin ? 'auto' : 'none' }}>
                 <div className="card-header" style={{ marginBottom: 20 }}>
-                    <div className="card-title"><Shield size={16} color="#00d4ff" /> Framework Configuration{!isAdmin && <Lock size={12} style={{ marginLeft: 6, color: '#f59e0b' }} />}</div>
+                    <div className="card-title"><Shield size={16} color="#0077BC" /> Framework Configuration{!isAdmin && <Lock size={12} style={{ marginLeft: 6, color: '#f59e0b' }} />}</div>
                 </div>
                 <div className="form-group">
                     <label className="form-label">MITRE ATT&CK Version</label>
@@ -185,7 +185,7 @@ export default function Settings() {
             {/* OSINT Settings */}
             <div className="card" style={{ marginBottom: 20, opacity: isAdmin ? 1 : 0.65, pointerEvents: isAdmin ? 'auto' : 'none' }}>
                 <div className="card-header" style={{ marginBottom: 20 }}>
-                    <div className="card-title"><Database size={16} color="#00d4ff" /> OSINT Data Collection{!isAdmin && <Lock size={12} style={{ marginLeft: 6, color: '#f59e0b' }} />}</div>
+                    <div className="card-title"><Database size={16} color="#0077BC" /> OSINT Data Collection{!isAdmin && <Lock size={12} style={{ marginLeft: 6, color: '#f59e0b' }} />}</div>
                 </div>
 
                 <div className="form-group">
@@ -245,7 +245,7 @@ export default function Settings() {
             {/* About */}
             <div className="card" style={{ marginBottom: 20 }}>
                 <div className="card-header" style={{ marginBottom: 16 }}>
-                    <div className="card-title"><Globe size={16} color="#00d4ff" /> About autoMITRE</div>
+                    <div className="card-title"><Globe size={16} color="#0077BC" /> About autoMITRE</div>
                 </div>
                 <div style={{ fontSize: 12, color: '#94a3b8', lineHeight: 1.8 }}>
                     <p><strong style={{ color: '#f0f4ff' }}>autoMITRE v1.2</strong> — AI-Driven Cyber Threat Intelligence Platform</p>

@@ -75,40 +75,40 @@ function NotificationBell() {
         onClick={() => setOpen(!open)}
         className="btn btn-icon btn-secondary"
         title="Team Invitations"
-        style={{ borderRadius: '50%', width: 40, height: 40, position: 'relative' }}
+        style={{ width: 40, height: 40, position: 'relative' }}
       >
         <Bell size={18} />
         {count > 0 && (
-          <span style={{ position: 'absolute', top: 4, right: 4, width: 16, height: 16, borderRadius: '50%', background: '#ef4444', fontSize: 9, fontWeight: 700, color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
+          <span style={{ position: 'absolute', top: -4, right: -4, width: 20, height: 20, borderRadius: 4, background: '#DC2626', border: '2px solid #111111', fontFamily: 'JetBrains Mono, monospace', fontSize: 10, fontWeight: 700, color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
             {count}
           </span>
         )}
       </button>
 
       {open && (
-        <div style={{ position: 'absolute', top: 48, right: 0, width: 320, background: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: 12, boxShadow: '0 20px 60px rgba(0,0,0,0.6)', zIndex: 1000, overflow: 'hidden' }}>
-          <div style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.06)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: 12, fontWeight: 700, color: '#f0f4ff' }}>Team Invitations</span>
-            <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', color: '#64748b', cursor: 'pointer', padding: 2 }}><X size={14} /></button>
+        <div style={{ position: 'absolute', top: 48, right: 0, width: 340, background: '#FFFFFF', color: '#111827', border: '2px solid #111111', borderRadius: 8, boxShadow: '6px 6px 0 0 #0077BC', zIndex: 1000, overflow: 'hidden' }}>
+          <div style={{ padding: '12px 16px', borderBottom: '2px solid #111111', background: '#111111', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <span style={{ fontFamily: 'Archivo Black, sans-serif', fontSize: 13, fontWeight: 900, color: '#FFFFFF', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Team Invitations</span>
+            <button onClick={() => setOpen(false)} style={{ background: 'none', border: 'none', color: '#FFFFFF', cursor: 'pointer', padding: 2 }} aria-label="Close"><X size={16} /></button>
           </div>
           {actionMsg && (
-            <div style={{ padding: '8px 16px', fontSize: 11, color: actionMsg.type === 'success' ? '#10b981' : '#ef4444', background: actionMsg.type === 'success' ? 'rgba(16,185,129,0.08)' : 'rgba(239,68,68,0.08)' }}>
+            <div style={{ padding: '10px 16px', fontFamily: 'Archivo, sans-serif', fontSize: 12, fontWeight: 700, color: actionMsg.type === 'success' ? '#16A34A' : '#DC2626', background: actionMsg.type === 'success' ? 'rgba(22,163,74,0.10)' : 'rgba(220,38,38,0.10)', borderBottom: '2px solid currentColor' }}>
               {actionMsg.text}
             </div>
           )}
           {invitations.length === 0 ? (
-            <div style={{ padding: '24px 16px', textAlign: 'center', fontSize: 12, color: '#475569' }}>No pending invitations</div>
+            <div style={{ padding: '24px 16px', textAlign: 'center', fontFamily: 'JetBrains Mono, monospace', fontSize: 12, fontWeight: 600, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.06em' }}>No pending invitations</div>
           ) : (
             invitations.map(inv => (
-              <div key={inv.id} style={{ padding: '12px 16px', borderBottom: '1px solid rgba(255,255,255,0.04)' }}>
-                <div style={{ fontSize: 12, fontWeight: 600, color: '#f0f4ff', marginBottom: 2 }}>{inv.group_name}</div>
-                <div style={{ fontSize: 11, color: '#64748b', marginBottom: 10 }}>Invited by <strong style={{ color: '#94a3b8' }}>{inv.inviter_username}</strong></div>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <button onClick={() => respond(inv.id, 'accept')} className="btn btn-primary" style={{ flex: 1, fontSize: 11, padding: '6px 0' }}>
-                    <Check size={11} /> Accept
+              <div key={inv.id} style={{ padding: '12px 16px', borderBottom: '1px solid rgba(17,17,17,0.10)' }}>
+                <div style={{ fontFamily: 'Archivo Black, sans-serif', fontSize: 14, fontWeight: 900, color: '#111827', marginBottom: 2, textTransform: 'uppercase' }}>{inv.group_name}</div>
+                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, fontWeight: 500, color: '#6B7280', marginBottom: 10 }}>Invited by <strong style={{ color: '#0077BC', fontWeight: 700 }}>{inv.inviter_username}</strong></div>
+                <div style={{ display: 'flex', gap: 8 }}>
+                  <button onClick={() => respond(inv.id, 'accept')} className="btn btn-primary btn-sm" style={{ flex: 1 }}>
+                    <Check size={12} /> Accept
                   </button>
-                  <button onClick={() => respond(inv.id, 'deny')} className="btn btn-secondary" style={{ flex: 1, fontSize: 11, padding: '6px 0', color: '#ef4444' }}>
-                    <X size={11} /> Decline
+                  <button onClick={() => respond(inv.id, 'deny')} className="btn btn-danger btn-sm" style={{ flex: 1 }}>
+                    <X size={12} /> Decline
                   </button>
                 </div>
               </div>

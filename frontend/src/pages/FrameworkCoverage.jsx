@@ -257,9 +257,9 @@ export default function FrameworkCoverage() {
                             <div className="card">
                                 <div className="card-header">
                                     <div className="card-title">
-                                        <Target size={16} color="#00d4ff" /> Detected ATT&CK Matrix Coverage
+                                        <Target size={16} color="#0077BC" /> Detected ATT&CK Matrix Coverage
                                     </div>
-                                    <a href="https://attack.mitre.org" target="_blank" rel="noreferrer" style={{ fontSize: 11, color: '#00d4ff', display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}>
+                                    <a href="https://attack.mitre.org" target="_blank" rel="noreferrer" style={{ fontSize: 11, color: '#0077BC', display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}>
                                         MITRE ATT&CK <ExternalLink size={10} />
                                     </a>
                                 </div>
@@ -364,8 +364,8 @@ export default function FrameworkCoverage() {
                 <div>
                     <div className="card" style={{ marginBottom: 20 }}>
                         <div className="card-header">
-                            <div className="card-title"><BookOpen size={16} color="#00d4ff" /> NIST SP 800-53 Control Coverage</div>
-                            <a href="https://csrc.nist.gov/publications/detail/sp/800-53/rev-5/final" target="_blank" rel="noreferrer" style={{ fontSize: 11, color: '#00d4ff', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
+                            <div className="card-title"><BookOpen size={16} color="#0077BC" /> NIST SP 800-53 Control Coverage</div>
+                            <a href="https://csrc.nist.gov/publications/detail/sp/800-53/rev-5/final" target="_blank" rel="noreferrer" style={{ fontSize: 11, color: '#0077BC', textDecoration: 'none', display: 'flex', alignItems: 'center', gap: 4 }}>
                                 NIST SP 800-53 Rev 5 <ExternalLink size={10} />
                             </a>
                         </div>

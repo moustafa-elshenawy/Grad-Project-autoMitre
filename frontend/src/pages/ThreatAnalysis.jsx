@@ -77,7 +77,7 @@ export function VirusTotalPanel({ vt }) {
                         </div>
                     )}
 
-                    {vt.signer && <div style={{ fontSize: 12, color: '#0ea5e9', marginTop: 4 }}>✍️ {vt.signer}</div>}
+                    {vt.signer && <div style={{ fontSize: 12, color: '#0077BC', marginTop: 4 }}>✍️ {vt.signer}</div>}
 
                     {vt.hashes?.sha256 && (
                         <div style={{ marginTop: 8 }}>
@@ -201,7 +201,7 @@ export function ThreatResultPanel({ result }) {
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                         {(entitiesExpanded ? entities : entities.slice(0, 8)).map((e, i) => (
                             <span key={i} style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, padding: '2px 8px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 4, color: '#94a3b8' }}>
-                                <span style={{ color: '#00d4ff', marginRight: 4 }}>[{e.type}]</span>{e.value}
+                                <span style={{ color: '#0077BC', marginRight: 4 }}>[{e.type}]</span>{e.value}
                             </span>
                         ))}
                         {entities.length > 8 && (
@@ -260,7 +260,7 @@ export function ThreatResultPanel({ result }) {
                                     </div>
                                     <div style={{ fontSize: 9, color: '#64748b' }}>confidence</div>
                                 </div>
-                                <a href={`https://attack.mitre.org/techniques/${t.id.replace('.', '/')}`} target="_blank" rel="noreferrer" style={{ color: '#00d4ff' }}>
+                                <a href={`https://attack.mitre.org/techniques/${t.id.replace('.', '/')}`} target="_blank" rel="noreferrer" style={{ color: '#0077BC' }}>
                                     <ExternalLink size={14} />
                                 </a>
                             </div>
@@ -368,6 +368,14 @@ export function ThreatResultPanel({ result }) {
     )
 }
 
+const SEV_ORDER = { Critical: 0, High: 1, Medium: 2, Low: 3 }
+const sortAttacks = (list) =>
+    [...list].sort((a, b) => {
+        const sd = (SEV_ORDER[a.severity_estimate] ?? 9) - (SEV_ORDER[b.severity_estimate] ?? 9)
+        if (sd !== 0) return sd
+        return (b.confidence ?? 0) - (a.confidence ?? 0)
+    })
+
 export default function ThreatAnalysis() {
     const [tab, setTab] = useState('text')
     const [text, setText] = useState('')
@@ -397,7 +405,7 @@ export default function ThreatAnalysis() {
             }
             const r = await axios.post(`${API}/api/analyze/import-tool-api${viewParam}`, payload, { headers })
             if (r.data.success && r.data.attacks && r.data.attacks.length > 0) {
-                setExtractedAttacks(r.data.attacks)
+                setExtractedAttacks(sortAttacks(r.data.attacks))
             } else {
                 setError(r.data.error || 'No attacks could be extracted from this API.')
             }
@@ -449,7 +457,7 @@ export default function ThreatAnalysis() {
             const headers = token ? { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' } : { 'Content-Type': 'multipart/form-data' }
             const r = await axios.post(`${API}/api/analyze/extract-attacks${viewParam}`, fd, { headers })
             if (r.data.success && r.data.attacks && r.data.attacks.length > 0) {
-                setExtractedAttacks(r.data.attacks)
+                setExtractedAttacks(sortAttacks(r.data.attacks))
             } else {
                 setError(r.data.error || 'No attacks could be extracted from this file.')
             }

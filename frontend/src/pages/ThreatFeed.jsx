@@ -13,7 +13,7 @@ const SOURCE_META = {
     urlhaus: { label: 'URLhaus', color: '#10b981', icon: '🔗' },
     bazaar: { label: 'MalwareBazaar', color: '#3b82f6', icon: '🦠' },
     otx: { label: 'AlienVault OTX', color: '#a855f7', icon: '🛰' },
-    db: { label: 'autoMITRE', color: '#0ea5e9', icon: '🎯' },
+    db: { label: 'autoMITRE', color: '#0077BC', icon: '🎯' },
 }
 
 function authHeader() {
@@ -87,7 +87,7 @@ function MispConfigPanel({ onSaved }) {
                 onClick={() => setOpen(o => !o)}
                 style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)', fontSize: 13, fontWeight: 600 }}
             >
-                <Settings2 size={15} color="#0ea5e9" />
+                <Settings2 size={15} color="#0077BC" />
                 OSINT Source Configuration
                 <span style={{ marginLeft: 'auto', color: 'var(--text-muted)' }}>{open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</span>
             </button>
@@ -199,7 +199,7 @@ export default function ThreatFeed() {
             {/* Header */}
             <div className="page-header" style={{ marginBottom: 20 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <Wifi size={20} color="#0ea5e9" />
+                    <Wifi size={20} color="#0077BC" />
                     <div>
                         <h1 style={{ margin: 0 }}>Live Threat Feed</h1>
                         <p style={{ margin: 0, fontSize: 12 }}>
@@ -251,7 +251,7 @@ export default function ThreatFeed() {
                 {/* Source filter */}
                 {activeSources.length > 1 && (
                     <div style={{ display: 'flex', gap: 5 }}>
-                        <button onClick={() => setSrc('all')} style={btnStyle(srcFilter === 'all', '#0ea5e9')}>All Sources</button>
+                        <button onClick={() => setSrc('all')} style={btnStyle(srcFilter === 'all', '#0077BC')}>All Sources</button>
                         {activeSources.map(([key, meta]) => (
                             <button key={key} onClick={() => setSrc(srcFilter === key ? 'all' : key)} style={btnStyle(srcFilter === key, meta.color)}>
                                 {meta.icon} {meta.label}
@@ -301,7 +301,7 @@ export default function ThreatFeed() {
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
                                             <span className={`badge badge-${SEV_CLASS[t.severity] || 'info'}`}>{t.severity}</span>
                                             {t.is_historic && (
-                                                <span title="Loaded from local database storage" style={{ display: 'flex', alignItems: 'center', color: '#0ea5e9' }}>
+                                                <span title="Loaded from local database storage" style={{ display: 'flex', alignItems: 'center', color: '#0077BC' }}>
                                                     <Database size={13} />
                                                 </span>
                                             )}
@@ -355,13 +355,13 @@ export default function ThreatFeed() {
                                     {/* Right side */}
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end', flexShrink: 0 }}>
                                         {t.frameworks?.map(f => (
-                                            <span key={f} style={{ fontSize: 10, padding: '2px 7px', borderRadius: 4, background: 'rgba(0,212,255,0.08)', color: '#00d4ff', border: '1px solid rgba(0,212,255,0.15)' }}>{f}</span>
+                                            <span key={f} style={{ fontSize: 10, padding: '2px 7px', borderRadius: 4, background: 'rgba(0,212,255,0.08)', color: '#0077BC', border: '1px solid rgba(0,212,255,0.15)' }}>{f}</span>
                                         ))}
                                         {t.technique && (
                                             <a
                                                 href={`https://attack.mitre.org/techniques/${t.technique.replace('.', '/')}`}
                                                 target="_blank" rel="noreferrer"
-                                                style={{ fontSize: 11, color: '#00d4ff', display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', marginTop: 4 }}
+                                                style={{ fontSize: 11, color: '#0077BC', display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', marginTop: 4 }}
                                             >
                                                 ATT&CK <ExternalLink size={10} />
                                             </a>

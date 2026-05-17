@@ -14,7 +14,7 @@ const CATEGORY_CONFIG = {
     EXPORT:   { icon: Download, color: '#34d399', label: 'Export'          },
     SETTINGS: { icon: Settings, color: '#fbbf24', label: 'Settings'        },
     USER:     { icon: Users,    color: '#fb923c', label: 'User'            },
-    TEAM:     { icon: Users,    color: '#00d4ff', label: 'Team'            },
+    TEAM:     { icon: Users,    color: '#0077BC', label: 'Team'            },
     ADMIN:    { icon: Shield,   color: '#f472b6', label: 'Admin'           },
     THREAT:   { icon: Trash2,   color: '#ef4444', label: 'Threat'          },
 }
@@ -186,7 +186,7 @@ export default function AuditLog() {
             {/* Header */}
             <div className="page-header">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 10, background: 'linear-gradient(135deg, #3b82f6, #00d4ff)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ width: 40, height: 40, borderRadius: 10, background: 'linear-gradient(135deg, #3b82f6, #0077BC)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         <Shield size={20} color="#000" />
                     </div>
                     <div>
@@ -211,7 +211,7 @@ export default function AuditLog() {
             {/* Stats row */}
             {stats && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 20 }}>
-                    <StatCard label="Events (30d)" value={stats.total} color="#00d4ff" icon={Activity} />
+                    <StatCard label="Events (30d)" value={stats.total} color="#0077BC" icon={Activity} />
                     <StatCard label="Successful"   value={stats.by_status?.success || 0} color="#10b981" icon={CheckCircle} />
                     <StatCard label="Failures"     value={stats.by_status?.failure || 0} color="#ef4444" icon={XCircle} />
                     <StatCard label="Warnings"     value={stats.by_status?.warning || 0} color="#f59e0b" icon={AlertTriangle} />

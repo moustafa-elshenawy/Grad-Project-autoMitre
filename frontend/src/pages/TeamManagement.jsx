@@ -5,7 +5,7 @@ import { useAuth } from '../contexts/AuthContext'
 const API = 'http://localhost:8000'
 
 const roleColors = {
-    admin: { bg: 'rgba(14,165,233,0.12)', text: '#0ea5e9', border: '1px solid rgba(14,165,233,0.25)' },
+    admin: { bg: 'rgba(14,165,233,0.12)', text: '#0077BC', border: '1px solid rgba(14,165,233,0.25)' },
     analyst: { bg: 'rgba(100,116,139,0.12)', text: '#94a3b8', border: '1px solid rgba(100,116,139,0.2)' },
 }
 
@@ -153,7 +153,7 @@ export default function TeamManagement() {
 
     if (loading) return (
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 300 }}>
-            <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid rgba(14,165,233,0.3)', borderTopColor: '#0ea5e9', animation: 'spin 0.8s linear infinite' }} />
+            <div style={{ width: 32, height: 32, borderRadius: '50%', border: '3px solid rgba(14,165,233,0.3)', borderTopColor: '#0077BC', animation: 'spin 0.8s linear infinite' }} />
         </div>
     )
 
@@ -163,7 +163,7 @@ export default function TeamManagement() {
             <div className="card" style={{ marginBottom: 20 }}>
                 <div style={{ textAlign: 'center', padding: '30px 20px' }}>
                     <div style={{ width: 64, height: 64, borderRadius: '50%', background: 'rgba(14,165,233,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 16px' }}>
-                        <Building2 size={28} color="#0ea5e9" />
+                        <Building2 size={28} color="#0077BC" />
                     </div>
                     <h3 style={{ fontSize: 16, fontWeight: 700, color: '#f0f4ff', margin: '0 0 8px' }}>No Team Workspace</h3>
                     <p style={{ fontSize: 12, color: '#64748b', marginBottom: 24 }}>
@@ -214,7 +214,7 @@ export default function TeamManagement() {
                 <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
                         <div style={{ width: 48, height: 48, borderRadius: 12, background: 'rgba(14,165,233,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                            <Building2 size={22} color="#0ea5e9" />
+                            <Building2 size={22} color="#0077BC" />
                         </div>
                         <div>
                             <div style={{ fontSize: 16, fontWeight: 700, color: '#f0f4ff', marginBottom: 4 }}>{group.name}</div>
@@ -239,7 +239,7 @@ export default function TeamManagement() {
             {isAdmin && (
                 <div className="card" style={{ marginBottom: 20 }}>
                     <div className="card-header" style={{ marginBottom: 16 }}>
-                        <div className="card-title"><UserPlus size={15} color="#00d4ff" /> Invite Analyst</div>
+                        <div className="card-title"><UserPlus size={15} color="#0077BC" /> Invite Analyst</div>
                     </div>
                     <form onSubmit={handleInvite} style={{ display: 'flex', gap: 10 }}>
                         <input
@@ -277,7 +277,7 @@ export default function TeamManagement() {
             {/* Members list */}
             <div className="card" style={{ marginBottom: 20 }}>
                 <div className="card-header" style={{ marginBottom: 16 }}>
-                    <div className="card-title"><Users size={15} color="#00d4ff" /> Team Members</div>
+                    <div className="card-title"><Users size={15} color="#0077BC" /> Team Members</div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {members.map(m => (
@@ -288,7 +288,7 @@ export default function TeamManagement() {
                                 </div>
                                 <div>
                                     <div style={{ fontSize: 13, fontWeight: 600, color: '#f0f4ff' }}>
-                                        {m.username} {m.user_id === user?.id && <span style={{ fontSize: 10, color: '#0ea5e9' }}>(you)</span>}
+                                        {m.username} {m.user_id === user?.id && <span style={{ fontSize: 10, color: '#0077BC' }}>(you)</span>}
                                     </div>
                                     {m.full_name && <div style={{ fontSize: 11, color: '#64748b' }}>{m.full_name}</div>}
                                 </div>

@@ -170,7 +170,7 @@ export default function AIChat() {
 
             {/* Footer info */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, fontSize: 11, color: '#475569' }}>
-                <Sparkles size={12} color="#00d4ff" />
+                <Sparkles size={12} color="#0077BC" />
                 <span>Powered by autoMITRE AI · ATT&CK v14 · NIST SP 800-53 Rev 5 · OWASP Top 10 2021</span>
             </div>
         </div>

@@ -135,10 +135,10 @@ export default function Dashboard() {
                 </div>
                 <div className="stat-card">
                     <div className="stat-icon-bg" style={{ background: 'rgba(0,212,255,0.1)' }}>
-                        <Zap size={18} color="#00d4ff" />
+                        <Zap size={18} color="#0077BC" />
                     </div>
                     <div className="stat-label">Avg Risk Score</div>
-                    <div className="stat-number" style={{ background: 'linear-gradient(135deg,#00d4ff,#7c3aed)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                    <div className="stat-number" style={{ background: 'linear-gradient(135deg,#0077BC,#009866)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
                         {stats.risk_score_avg}
                     </div>
                     <div className="stat-change" style={{ color: '#f97316' }}>
@@ -157,7 +157,7 @@ export default function Dashboard() {
                 </div>
                 <div className="stat-card">
                     <div className="stat-icon-bg" style={{ background: 'rgba(124,58,237,0.1)' }}>
-                        <Globe size={18} color="#7c3aed" />
+                        <Globe size={18} color="#009866" />
                     </div>
                     <div className="stat-label">Frameworks Active</div>
                     <div className="stat-number">{stats.frameworks_mapped}</div>
@@ -171,7 +171,7 @@ export default function Dashboard() {
                 {/* Threat Activity Chart */}
                 <div className="card">
                     <div className="card-header">
-                        <div className="card-title"><Activity size={16} color="#00d4ff" /> Threat Activity (7-Day)</div>
+                        <div className="card-title"><Activity size={16} color="#0077BC" /> Threat Activity (7-Day)</div>
                         <span className="badge badge-info">Live</span>
                     </div>
                     <ResponsiveContainer width="100%" height={200}>
@@ -199,7 +199,7 @@ export default function Dashboard() {
                 {/* Severity Distribution */}
                 <div className="card">
                     <div className="card-header">
-                        <div className="card-title"><AlertTriangle size={16} color="#00d4ff" /> Severity Distribution</div>
+                        <div className="card-title"><AlertTriangle size={16} color="#0077BC" /> Severity Distribution</div>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
                         {severityDist.length === 0 ? (
@@ -238,7 +238,7 @@ export default function Dashboard() {
                 {/* Recent Threats */}
                 <div className="card">
                     <div className="card-header">
-                        <div className="card-title"><Clock size={16} color="#00d4ff" /> Recent Threats</div>
+                        <div className="card-title"><Clock size={16} color="#0077BC" /> Recent Threats</div>
                         <a href="/feed" style={{ fontSize: 11, color: 'var(--accent-blue)', textDecoration: 'none' }}>View all →</a>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
@@ -264,7 +264,7 @@ export default function Dashboard() {
                 {/* ATT&CK Tactic Coverage */}
                 <div className="card">
                     <div className="card-header">
-                        <div className="card-title"><Shield size={16} color="#00d4ff" /> ATT&CK Tactic Coverage</div>
+                        <div className="card-title"><Shield size={16} color="#0077BC" /> ATT&CK Tactic Coverage</div>
                     </div>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                         {tacticCoverage.map(t => (
@@ -283,7 +283,7 @@ export default function Dashboard() {
             {/* Historical Trend Analysis (FR7.1 / FR7.3) */}
             <div style={{ marginTop: 24, marginBottom: 40 }}>
                 <h3 style={{ fontSize: 14, color: '#f0f4ff', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                    <Layers size={16} color="#00d4ff" />
+                    <Layers size={16} color="#0077BC" />
                     Historical Pattern Analysis (30-Day Trends)
                 </h3>
                 <div className="grid-3">

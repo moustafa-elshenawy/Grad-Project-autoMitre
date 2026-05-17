@@ -176,14 +176,18 @@ async def extract_attacks(file: UploadFile = File(...), context: Optional[str] =
                 snippet = f"Attack Type: {att['type']}\nMetrics: {att['metrics']}\nDetails: {att['verdict']}"
                 if context:
                     snippet = f"Context: {context}\n\n{snippet}"
-                    
+
                 validated_attacks.append(
                     ExtractedAttack(
                         id=f"pcap-{idx}",
                         title=att['type'],
                         description=att['verdict'],
                         raw_snippet=snippet,
-                        severity_estimate=att['severity']
+                        severity_estimate=att['severity'],
+                        mitre_technique_id=att.get('mitre_technique_id'),
+                        mitre_tactic=att.get('mitre_tactic'),
+                        confidence=att.get('confidence'),
+                        payload_snippets=att.get('payload_snippets', [])
                     )
                 )
                 

@@ -68,7 +68,7 @@ const PIPELINE_STAGES = [
         label: 'Framework Mapping',
         sublabel: 'Cross-referencing D3FEND · NIST 800-53 · OWASP',
         icon: '🗺️',
-        color: '#00d4ff',
+        color: '#0077BC',
         duration: 900,
     },
     {
@@ -211,13 +211,13 @@ export default function AIPipelineAnimation({ visible }) {
                     background: 'rgba(0,212,255,0.04)',
                 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <PulsingDot color="#00d4ff" />
+                        <PulsingDot color="#0077BC" />
                         <span style={{ fontSize: 13, fontWeight: 700, color: '#f0f4ff', letterSpacing: 0.5 }}>
                             AI Pipeline — Live Processing
                         </span>
                         <span style={{
                             fontSize: 9, padding: '2px 8px', background: 'rgba(0,212,255,0.12)',
-                            color: '#00d4ff', borderRadius: 100, border: '1px solid rgba(0,212,255,0.25)',
+                            color: '#0077BC', borderRadius: 100, border: '1px solid rgba(0,212,255,0.25)',
                             fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1,
                         }}>
                             SOTA
@@ -230,7 +230,7 @@ export default function AIPipelineAnimation({ visible }) {
                         <span style={{
                             fontFamily: 'JetBrains Mono, monospace',
                             fontSize: 13, fontWeight: 700,
-                            color: '#00d4ff',
+                            color: '#0077BC',
                         }}>
                             {Math.round(progress)}%
                         </span>
@@ -242,7 +242,7 @@ export default function AIPipelineAnimation({ visible }) {
                     <div style={{
                         height: '100%',
                         width: `${progress}%`,
-                        background: 'linear-gradient(90deg, #3b82f6, #00d4ff)',
+                        background: 'linear-gradient(90deg, #3b82f6, #0077BC)',
                         borderRadius: 100,
                         transition: 'width 0.5s ease',
                         boxShadow: '0 0 12px rgba(0,212,255,0.6)',
@@ -367,7 +367,7 @@ export default function AIPipelineAnimation({ visible }) {
                         { label: 'SecBERT', desc: 'jackaduma/SecBERT · TRAM', color: '#f472b6' },
                         { label: 'MPNet', desc: 'all-mpnet-base-v2 · 420MB', color: '#34d399' },
                         { label: 'CVSS ML', desc: 'RF Regressor · 277k CVEs', color: '#fb923c' },
-                        { label: 'ATT&CK v14', desc: 'MITRE Enterprise Matrix', color: '#00d4ff' },
+                        { label: 'ATT&CK v14', desc: 'MITRE Enterprise Matrix', color: '#0077BC' },
                     ].map(m => (
                         <div key={m.label} style={{
                             display: 'flex', alignItems: 'center', gap: 6,

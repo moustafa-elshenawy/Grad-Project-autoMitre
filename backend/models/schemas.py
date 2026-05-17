@@ -32,6 +32,10 @@ class ExtractedAttack(BaseModel):
     description: str
     raw_snippet: str
     severity_estimate: str
+    mitre_technique_id: Optional[str] = None
+    mitre_tactic: Optional[str] = None
+    confidence: Optional[float] = None
+    payload_snippets: Optional[List[str]] = []
 
 
 class ExtractedAttacksResponse(BaseModel):

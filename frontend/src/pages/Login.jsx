@@ -70,7 +70,7 @@ const Login = () => {
 
                     <div className="auth-header">
                         <div className="auth-logo">
-                            <Shield size={32} color="#0ea5e9" strokeWidth={2.5} />
+                            <Shield size={32} color="#0077BC" strokeWidth={2.5} />
                             <h1>AutoMITRE</h1>
                         </div>
                         <h2 className="auth-title">Welcome Back</h2>

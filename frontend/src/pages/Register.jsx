@@ -92,7 +92,7 @@ const Register = () => {
                 <div className="auth-card" style={{ maxWidth: step === 2 ? 480 : 420 }}>
                     <div className="auth-header">
                         <div className="auth-logo">
-                            <ShieldCheck size={32} color="#0ea5e9" strokeWidth={2.5} />
+                            <ShieldCheck size={32} color="#0077BC" strokeWidth={2.5} />
                             <h1>AutoMITRE</h1>
                         </div>
                         <h2 className="auth-title">
@@ -110,7 +110,7 @@ const Register = () => {
                         {[1, 2].map(s => (
                             <div key={s} style={{
                                 width: 32, height: 4, borderRadius: 2,
-                                background: s <= step ? 'var(--accent-blue, #0ea5e9)' : 'rgba(255,255,255,0.12)',
+                                background: s <= step ? 'var(--accent-blue, #0077BC)' : 'rgba(255,255,255,0.12)',
                                 transition: 'background 0.3s'
                             }} />
                         ))}
@@ -173,7 +173,7 @@ const Register = () => {
                                         display: 'flex', alignItems: 'flex-start', gap: 14, padding: '14px 16px',
                                         borderRadius: 10, cursor: 'pointer', transition: 'all 0.2s',
                                         border: groupChoice === 'create'
-                                            ? '1.5px solid #0ea5e9'
+                                            ? '1.5px solid #0077BC'
                                             : '1.5px solid rgba(255,255,255,0.1)',
                                         background: groupChoice === 'create'
                                             ? 'rgba(14,165,233,0.08)'
@@ -181,13 +181,13 @@ const Register = () => {
                                     }}
                                 >
                                     <div style={{ marginTop: 2 }}>
-                                        <div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid #0ea5e9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                            {groupChoice === 'create' && <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#0ea5e9' }} />}
+                                        <div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid #0077BC', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            {groupChoice === 'create' && <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#0077BC' }} />}
                                         </div>
                                     </div>
                                     <div>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                                            <Building2 size={15} color="#0ea5e9" />
+                                            <Building2 size={15} color="#0077BC" />
                                             <span style={{ fontSize: 13, fontWeight: 600, color: '#f0f4ff' }}>Create Team Workspace</span>
                                         </div>
                                         <div style={{ fontSize: 11, color: '#64748b', lineHeight: 1.5 }}>
@@ -203,7 +203,7 @@ const Register = () => {
                                         display: 'flex', alignItems: 'flex-start', gap: 14, padding: '14px 16px',
                                         borderRadius: 10, cursor: 'pointer', transition: 'all 0.2s',
                                         border: groupChoice === 'none'
-                                            ? '1.5px solid #0ea5e9'
+                                            ? '1.5px solid #0077BC'
                                             : '1.5px solid rgba(255,255,255,0.1)',
                                         background: groupChoice === 'none'
                                             ? 'rgba(14,165,233,0.08)'
@@ -211,8 +211,8 @@ const Register = () => {
                                     }}
                                 >
                                     <div style={{ marginTop: 2 }}>
-                                        <div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid #0ea5e9', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                            {groupChoice === 'none' && <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#0ea5e9' }} />}
+                                        <div style={{ width: 16, height: 16, borderRadius: '50%', border: '2px solid #0077BC', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            {groupChoice === 'none' && <div style={{ width: 8, height: 8, borderRadius: '50%', background: '#0077BC' }} />}
                                         </div>
                                     </div>
                                     <div>

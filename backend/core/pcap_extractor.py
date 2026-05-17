@@ -1,433 +1,518 @@
-import struct
-import socket
-import collections
-import datetime
-import os
+import struct, socket, collections, datetime, os, math, re
 
-def parse_ip(data, offset):
-    if len(data) < offset + 20: return None
-    ihl = (data[offset] & 0x0F) * 4
-    if len(data) < offset + ihl: return None
-    proto = data[offset+9]
-    src_ip = socket.inet_ntoa(data[offset+12:offset+16])
-    dst_ip = socket.inet_ntoa(data[offset+16:offset+20])
-    return {
-        'ihl': ihl, 'proto': proto, 
-        'src': src_ip, 'dst': dst_ip, 
-        'total_offset': offset + ihl
-    }
+MITRE = {
+    'TCP SYN Port Scan':          ('T1046',     'Discovery'),
+    'TCP Connect Scan':           ('T1046',     'Discovery'),
+    'UDP Port Scan':              ('T1046',     'Discovery'),
+    'XMAS / NULL Scan':           ('T1046',     'Discovery'),
+    'TCP SYN Flood':              ('T1498.001', 'Impact'),
+    'ICMP Flood':                 ('T1498.001', 'Impact'),
+    'DNS Amplification':          ('T1498.002', 'Impact'),
+    'Traffic Volume Anomaly':     ('T1498',     'Impact'),
+    'HTTP Brute-Force':           ('T1110',     'Credential Access'),
+    'Cleartext Credential Theft': ('T1078',     'Defense Evasion'),
+    'ARP Spoofing':               ('T1557.002', 'Credential Access'),
+    'SQL Injection Probe':        ('T1190',     'Initial Access'),
+    'Command Injection':          ('T1059',     'Execution'),
+    'XSS Probe':                  ('T1059.007', 'Execution'),
+    'Java RMI Exploitation':      ('T1203',     'Execution'),
+    'SSL/TLS Downgrade':          ('T1600',     'Defense Evasion'),
+    'C2 Beaconing':               ('T1071',     'Command and Control'),
+    'DNS Exfiltration':           ('T1048.003', 'Exfiltration'),
+    'Data Exfiltration':          ('T1041',     'Exfiltration'),
+    'TCP Replay Attack':          ('T1498',     'Impact'),
+}
 
-def parse_tcp(data, offset):
-    if len(data) < offset + 20: return None
-    src_port = struct.unpack('>H', data[offset:offset+2])[0]
-    dst_port = struct.unpack('>H', data[offset+2:offset+4])[0]
-    seq      = struct.unpack('>I', data[offset+4:offset+8])[0]
-    ack      = struct.unpack('>I', data[offset+8:offset+12])[0]
-    data_offset = ((data[offset+12] >> 4) * 4)
-    if len(data) < offset + data_offset: return None
-    flags = data[offset+13]
-    return {
-        'src_port': src_port, 'dst_port': dst_port, 'seq': seq, 'ack': ack,
-        'syn': bool(flags & 0x02), 'ack_f': bool(flags & 0x10),
-        'fin': bool(flags & 0x01), 'rst': bool(flags & 0x04),
-        'psh': bool(flags & 0x08), 'data_offset': data_offset
-    }
+SENSITIVE_PORTS = {21:'FTP',23:'Telnet',110:'POP3',143:'IMAP',25:'SMTP',
+                   5800:'VNC',3389:'RDP',445:'SMB',6667:'IRC',2628:'DICT'}
+
+SQLI_RE = re.compile(rb'(?i)(union\s+select|or\s+1\s*=\s*1|\'--|\bdrop\s+table\b|select\s+\*\s+from)', re.I)
+CMDI_RE = re.compile(rb'(?i)(cmd\.exe|/bin/sh|/bin/bash|wget\s|curl\s|eval\(|system\(|exec\(|base64\s+-d)')
+XSS_RE  = re.compile(rb'(?i)(<script|javascript:|onerror\s*=|onload\s*=|alert\()')
+CRED_RE = re.compile(rb'(?i)(^USER |^PASS |login:\s|password:\s)')
+SSL_BAD = re.compile(rb'\x16\x03[\x00\x01]')
+
+def _entropy(s):
+    if not s: return 0.0
+    c = collections.Counter(s); l = len(s)
+    return -sum((v/l)*math.log2(v/l) for v in c.values())
+
+def _parse_ip(data, off):
+    if len(data) < off+20: return None
+    ihl = (data[off] & 0x0F) * 4
+    if len(data) < off+ihl: return None
+    return {'ihl':ihl,'proto':data[off+9],
+            'src':socket.inet_ntoa(data[off+12:off+16]),
+            'dst':socket.inet_ntoa(data[off+16:off+20]),
+            'total_offset':off+ihl}
+
+def _parse_tcp(data, off):
+    if len(data) < off+20: return None
+    sp,dp = struct.unpack('>HH', data[off:off+4])
+    seq,  = struct.unpack('>I',  data[off+4:off+8])
+    flags = data[off+13]
+    doff  = (data[off+12]>>4)*4
+    return {'sport':sp,'dport':dp,'seq':seq,'flags':flags,'doff':doff,
+            'syn':bool(flags&2),'ack_f':bool(flags&16),
+            'rst':bool(flags&4),'fin':bool(flags&1)}
+
+def _parse_udp(data, off):
+    if len(data) < off+8: return None
+    sp,dp = struct.unpack('>HH', data[off:off+4])
+    return {'sport':sp,'dport':dp}
+
+def _dns_name(data, off):
+    labels=[]; visited=set()
+    while off < len(data):
+        if off in visited: break
+        visited.add(off)
+        l = data[off]
+        if l == 0: off+=1; break
+        if (l & 0xC0) == 0xC0:
+            ptr = ((l&0x3F)<<8)|data[off+1]
+            sub,_ = _dns_name(data, ptr); labels+=sub; off+=2; break
+        off+=1; labels.append(data[off:off+l].decode('ascii','replace')); off+=l
+    return labels, off
+
+def _dns_qname(payload):
+    if len(payload)<12: return None
+    if struct.unpack('>H', payload[4:6])[0] < 1: return None
+    labels,_ = _dns_name(payload, 12)
+    return '.'.join(labels)
+
+def _add(attacks, iocs, atype, sev, t0, t1, attacker, target, metrics, verdict, conf, snips=None):
+    tid, tactic = MITRE.get(atype, ('T0000','Unknown'))
+    attacks.append({'type':atype,'severity':sev,'start_ts':t0,'end_ts':t1,
+                    'attacker':attacker,'target':target,'metrics':metrics,'verdict':verdict,
+                    'mitre_technique_id':tid,'mitre_tactic':tactic,
+                    'confidence':round(conf,2),'payload_snippets':snips or []})
+    iocs['ips'].add(attacker)
+
+def _collect_packets(filepath):
+    with open(filepath,'rb') as f:
+        magic = f.read(4)
+        if len(magic)<4: return None,'File too short'
+        if magic == b'\x0a\x0d\x0d\x0a':
+            try:
+                from scapy.all import rdpcap
+                pkts = rdpcap(filepath, count=100000)
+                return ('scapy', pkts), None
+            except Exception as e:
+                return None, f'PCAPNG parse failed: {e}'
+        valid = (b'\xd4\xc3\xb2\xa1',b'\xa1\xb2\xc3\xd4',b'\x4d\x3c\xb2\xa1',b'\xa1\xb2\x3c\x4d')
+        if magic not in valid: return None,'Not a valid PCAP/PCAPNG file'
+        endian = '<' if magic in (b'\xd4\xc3\xb2\xa1',b'\x4d\x3c\xb2\xa1') else '>'
+        _,_,_,_,_,network = struct.unpack(endian+'HHiIII', f.read(20))
+        if network == 113: link_off = 16
+        elif network == 1: link_off = 14
+        else: return None, f'Unsupported link type: {network}'
+        packets=[]
+        while True:
+            rec = f.read(16)
+            if len(rec)<16: break
+            ts_sec,ts_usec,incl,orig = struct.unpack(endian+'IIII', rec)
+            data = f.read(incl)
+            if len(data)<incl: break
+            packets.append((ts_sec,ts_usec,data,orig))
+    if not packets: return None,'No packets found'
+    return ('raw', packets, link_off), None
 
 def analyze_pcap(filepath):
-    try:
-        with open(filepath, 'rb') as f:
-            magic = f.read(4)
-            if len(magic) < 4:
-                return {'error': 'File too short to be a valid capture.'}
-                
-            if magic in (b'\x0a\x0d\x0d\x0a',):
-                return {'error': 'This file uses the modern PCAPNG format. The standalone extractor strictly requires the legacy libpcap (.pcap) format. Please save/export as .pcap in Wireshark.'}
+    result, err = _collect_packets(filepath)
+    if err: return {'error': err}
+    if result[0] == 'raw':
+        _, packets, link_off = result
+        return _analyze(packets, link_off, filepath)
+    else:
+        _, scapy_pkts = result
+        return _analyze_scapy(scapy_pkts, filepath)
 
-            if magic not in (b'\xd4\xc3\xb2\xa1', b'\xa1\xb2\xc3\xd4', b'\x4d\x3c\xb2\xa1', b'\xa1\xb2\x3c\x4d'):
-                return {'error': 'Not a valid libpcap file (unsupported magic signature). Make sure it is saved as standard tcpdump pcap.'}
-                
-            endian = '<' if magic in (b'\xd4\xc3\xb2\xa1', b'\x4d\x3c\xb2\xa1') else '>'
-            
-            ver_major, ver_minor, thiszone, sigfigs, snaplen, network = struct.unpack(endian + 'HHiIII', f.read(20))
-            
-            if network == 113:
-                link_offset = 16
-            elif network == 1:
-                link_offset = 14
-            else:
-                return {'error': f'Unsupported link-layer type: {network}'}
-            
-            packets = []
-            while True:
-                rec_hdr = f.read(16)
-                if len(rec_hdr) < 16: break
-                ts_sec, ts_usec, incl_len, orig_len = struct.unpack(endian + 'IIII', rec_hdr)
-                data = f.read(incl_len)
-                if len(data) < incl_len: break
-                packets.append((ts_sec, ts_usec, data, orig_len))
-    except Exception as e:
-        return {'error': str(e)}
+def _analyze_scapy(pkts, filepath):
+    """Fallback for PCAPNG: convert scapy packets to raw tuples and analyse."""
+    from scapy.all import IP, TCP, UDP
+    packets = []
+    for pkt in pkts:
+        if IP not in pkt: continue
+        ts = float(pkt.time)
+        ts_sec = int(ts); ts_usec = int((ts-ts_sec)*1e6)
+        raw = bytes(pkt)
+        # Build minimal fake Ethernet header so link_off=14 works
+        eth = b'\x00'*14 + raw[pkt[IP]._offset:]
+        packets.append((ts_sec, ts_usec, eth, len(raw)))
+    if not packets: return {'error':'No IP packets in PCAPNG'}
+    return _analyze(packets, 14, filepath)
 
-    # Check if empty
-    if not packets:
-        return {'error': 'No packets found in PCAP'}
+def _analyze(packets, link_off, filepath):
+    start_full = packets[0][0]+packets[0][1]/1e6
+    end_full   = packets[-1][0]+packets[-1][1]/1e6
+    duration   = max(end_full-start_full, 0.001)
+    start_sec  = packets[0][0]
 
-    start_ts_sec = packets[0][0]
-    start_ts_full = packets[0][0] + packets[0][1]/1e6
-    end_ts_full = packets[-1][0] + packets[-1][1]/1e6
-    duration = max(end_ts_full - start_ts_full, 0.001)
-    
-    protocols = {'TCP': 0, 'UDP': 0, 'ICMP': 0}
-    hosts = set()
-    
-    syn_packets = []  # (ts, src, dst, sport, dport)
-    rst_packets = set() # (src, dst, sport, dport)
-    syn_ack_packets = set()
-    
-    tcp_sessions = collections.defaultdict(list) # canon_key -> list of events
-    seen_seq = {} # (src, dst, sport, dport, seq) -> first_ts
-    retransmissions = []
-    
-    dns_ptr_queries = collections.defaultdict(list) # src -> list of ts
-    
-    buckets = collections.defaultdict(int)
-    flow_buckets = collections.defaultdict(lambda: collections.defaultdict(int))
-    
-    for ts_sec, ts_usec, data, orig_len in packets:
-        ts = ts_sec + ts_usec / 1e6
-        buckets[(ts_sec - start_ts_sec) // 10] += 1
-        
-        ip = parse_ip(data, link_offset)
-        if not ip: continue
-        
-        hosts.add(ip['src'])
-        hosts.add(ip['dst'])
-        
-        flow_endpoints = (ip['src'], ip['dst'])
-        flow_buckets[(ts_sec - start_ts_sec) // 10][flow_endpoints] += 1
-        
-        if ip['proto'] == 6:  # TCP
-            protocols['TCP'] += 1
-            tcp = parse_tcp(data, ip['total_offset'])
+    protocols  = {'TCP':0,'UDP':0,'ICMP':0,'Other':0}
+    hosts      = set()
+
+    syn_pkts   = []
+    syn_ack    = set()
+    rst_pkts   = set()
+    udp_probes = collections.defaultdict(set)
+    icmp_src   = collections.defaultdict(list)
+
+    tcp_sessions  = collections.defaultdict(list)
+    seen_seq      = {}
+    retransmits   = []
+
+    dns_queries   = collections.defaultdict(list)
+    dns_ans_sz    = collections.defaultdict(list)
+    arp_ip_mac    = collections.defaultdict(set)
+
+    http_posts    = collections.defaultdict(list)
+    http_snips    = collections.defaultdict(list)
+    sqli_hits=[];  cmdi_hits=[];  xss_hits=[];  cred_hits=[];  ssl_hits=[]
+
+    beacon_flows  = collections.defaultdict(list)
+    outbound      = collections.defaultdict(int)
+    buckets       = collections.defaultdict(int)
+    flow_bkts     = collections.defaultdict(lambda: collections.defaultdict(int))
+
+    for ts_sec,ts_usec,data,orig in packets:
+        ts  = ts_sec+ts_usec/1e6
+        bkt = (ts_sec-start_sec)//10
+        buckets[bkt] += 1
+
+        # ARP spoofing detection (Ethernet only)
+        if link_off==14 and len(data)>=42:
+            if struct.unpack('>H',data[12:14])[0]==0x0806:
+                op = struct.unpack('>H',data[20:22])[0]
+                if op==2:
+                    mac = ':'.join(f'{b:02x}' for b in data[22:28])
+                    ip  = socket.inet_ntoa(data[28:32])
+                    arp_ip_mac[ip].add(mac)
+
+        iph = _parse_ip(data, link_off)
+        if not iph: continue
+        src,dst = iph['src'],iph['dst']
+        hosts.add(src); hosts.add(dst)
+        flow_bkts[bkt][(src,dst)] += 1
+        outbound[(src,dst)] += orig
+
+        if iph['proto']==6:
+            protocols['TCP']+=1
+            tcp = _parse_tcp(data, iph['total_offset'])
             if not tcp: continue
-            
-            payload_start = ip['total_offset'] + tcp['data_offset']
-            payload = data[payload_start:]
-            
-            if tcp['syn'] and not tcp['ack_f']:
-                syn_packets.append((ts, ip['src'], ip['dst'], tcp['src_port'], tcp['dst_port']))
-            if tcp['syn'] and tcp['ack_f']:
-                syn_ack_packets.add((ip['src'], ip['dst'], tcp['src_port'], tcp['dst_port']))
-            if tcp['rst']:
-                rst_packets.add((ip['src'], ip['dst'], tcp['src_port'], tcp['dst_port']))
-            
-            key = (ip['src'], ip['dst'], tcp['src_port'], tcp['dst_port'], tcp['seq'])
+            sp,dp = tcp['sport'],tcp['dport']
+            pl_off = iph['total_offset']+tcp['doff']
+            payload = data[pl_off:]
+
+            if tcp['syn'] and not tcp['ack_f']: syn_pkts.append((ts,src,dst,sp,dp))
+            if tcp['syn'] and tcp['ack_f']:     syn_ack.add((src,dst,sp,dp))
+            if tcp['rst']:                       rst_pkts.add((src,dst,sp,dp))
+
+            key = (src,dst,sp,dp,tcp['seq'])
             if payload:
-                if key in seen_seq:
-                    retransmissions.append((ts, seen_seq[key], ip['src'], tcp['dst_port'], len(payload)))
+                if key in seen_seq and (ts-seen_seq[key])<1.0:
+                    retransmits.append((ts,seen_seq[key],src,dp,payload[:80]))
                 else:
-                    seen_seq[key] = ts
-                    
-            canon_key = tuple(sorted([f"{ip['src']}:{tcp['src_port']}", f"{ip['dst']}:{tcp['dst_port']}"]))
-            tcp_sessions[canon_key].append({
-                'ts': ts,
-                'src': ip['src'], 'sport': tcp['src_port'],
-                'dst': ip['dst'], 'dport': tcp['dst_port'],
-                'payload_len': len(payload),
-                'syn': tcp['syn'], 'payload': payload
-            })
+                    seen_seq[key]=ts
 
-        elif ip['proto'] == 17:  # UDP
-            protocols['UDP'] += 1
-            offset = ip['total_offset'] + 8
-            udp_payload = data[offset:]
-            if b'in-addr' in udp_payload and b'arpa' in udp_payload:
-                dns_ptr_queries[ip['src']].append((ts, udp_payload))
-                
-        elif ip['proto'] == 1:  # ICMP
-            protocols['ICMP'] += 1
+            canon = tuple(sorted([f'{src}:{sp}',f'{dst}:{dp}']))
+            tcp_sessions[canon].append({'ts':ts,'src':src,'sport':sp,'dst':dst,'dport':dp,
+                                        'payload_len':len(payload),'syn':tcp['syn'],'payload':payload})
 
-    attacks = []
-    iocs = {'ips': set(), 'ports': set(), 'signatures': set()}
-    
-    # 1. TCP SYN Port Scan
-    syn_by_src_dst = collections.defaultdict(list)
-    for ts, src, dst, sport, dport in syn_packets:
-        syn_by_src_dst[(src, dst)].append((ts, sport, dport))
-        
-    for (src, dst), events in syn_by_src_dst.items():
-        events.sort(key=lambda x: x[0])
-        n = len(events)
-        i = 0
-        while i < n:
-            window_end = events[i][0] + 60
-            unique_ports = set()
-            j = i
-            while j < n and events[j][0] <= window_end:
-                unique_ports.add(events[j][2]) # dport
-                j += 1
-            
-            if len(unique_ports) >= 20:
-                # Confirm with RST or lack of SYN-ACK
-                rst_count = sum(1 for p in unique_ports if (dst, src, p, events[i][1]) in rst_packets)
-                open_ports = sum(1 for p in unique_ports if (dst, src, p, events[i][1]) in syn_ack_packets)
-                rate = len(unique_ports) / max(events[j-1][0] - events[i][0], 0.001)
-                
-                attacks.append({
-                    'type': 'TCP SYN Port Scan',
-                    'severity': 'Medium',
-                    'start_ts': events[i][0],
-                    'end_ts': events[j-1][0],
-                    'attacker': src,
-                    'target': dst,
-                    'metrics': f"Scanned {len(unique_ports)} ports, Open: {open_ports}, Rate: {rate:.1f} SYN/sec",
-                    'verdict': f"Source {src} scanned {len(unique_ports)} unique ports on {dst} within 60s."
-                })
-                iocs['ips'].add(src)
-                iocs['ports'].update(unique_ports)
-                i += j # skip ahead
-            else:
-                i += 1
+            http_port = dp in (80,8080,8000,443,8443) or sp in (80,8080,8000,443,8443)
+            if http_port and payload[:4] in (b'GET ',b'POST',b'PUT ',b'DELE',b'HEAD',b'OPTI'):
+                snip = payload[:200].decode('utf-8','ignore').split('\r\n')[0]
+                if payload[:4]==b'POST':
+                    http_posts[(src,dst,dp)].append(ts)
+                    http_snips[(src,dst,dp)].append(snip)
+                if SQLI_RE.search(payload): sqli_hits.append((ts,src,dst,dp,payload))
+                if CMDI_RE.search(payload): cmdi_hits.append((ts,src,dst,dp,payload))
+                if XSS_RE.search(payload):  xss_hits.append((ts,src,dst,dp,payload))
 
-    # 2. TCP SYN Flood (DoS)
-    syn_by_target = collections.defaultdict(list)
-    for ts, src, dst, sport, dport in syn_packets:
-        syn_by_target[(src, dst, dport)].append(ts)
-        
-    for (src, dst, dport), timestamps in syn_by_target.items():
-        timestamps.sort()
-        n = len(timestamps)
-        i = 0
-        while i < n:
-            window_end = timestamps[i] + 30
-            j = i
-            while j < n and timestamps[j] <= window_end:
-                j += 1
-            count = j - i
-            if count >= 500:
-                rate = count / max(timestamps[j-1] - timestamps[i], 0.001)
-                attacks.append({
-                    'type': 'TCP SYN Flood (DoS)',
-                    'severity': 'High',
-                    'start_ts': timestamps[i],
-                    'end_ts': timestamps[j-1],
-                    'attacker': src,
-                    'target': f"{dst}:{dport}",
-                    'metrics': f"SYN count: {count}, Rate: {rate:.1f}/sec",
-                    'verdict': f"Source {src} flooded {dst}:{dport} with {count} SYN packets without completing handshake."
-                })
-                iocs['ips'].add(src)
-                iocs['ports'].add(dport)
-                i += j
-            else:
-                i += 1
+            if dp in SENSITIVE_PORTS and payload and CRED_RE.search(payload[:64]):
+                cred_hits.append((ts,src,dst,dp,payload[:64]))
 
-    # 3. SSH Session Replay Attack
-    for canon_key, pkts in tcp_sessions.items():
-        client_node = server_node = None
+            if payload and SSL_BAD.search(payload[:5]): ssl_hits.append((ts,src,dst,dp))
+
+            # XMAS / NULL scans
+            flags = tcp['flags']
+            if flags==0x29 or flags==0:
+                syn_pkts.append((ts,src,dst,sp,dp))  # reuse scan detection
+
+            if payload and not tcp['syn']:
+                beacon_flows[(src,dst,dp)].append((ts,len(payload)))
+
+        elif iph['proto']==17:
+            protocols['UDP']+=1
+            udp = _parse_udp(data, iph['total_offset'])
+            if not udp: continue
+            sp,dp = udp['sport'],udp['dport']
+            payload = data[iph['total_offset']+8:]
+            udp_probes[(src,dst)].add(dp)
+            if dp==53 or sp==53:
+                qname = _dns_qname(payload)
+                if qname: dns_queries[src].append((ts,qname))
+                if sp==53: dns_ans_sz[dst].append(len(payload))
+        elif iph['proto']==1:
+            protocols['ICMP']+=1
+            if len(data)>iph['total_offset'] and data[iph['total_offset']]==8:
+                icmp_src[src].append(ts)
+        else:
+            protocols['Other']+=1
+
+    attacks=[]; iocs={'ips':set(),'ports':set(),'signatures':set()}
+
+    # 1 — TCP SYN Port Scan
+    by_pair = collections.defaultdict(list)
+    for ts,src,dst,sp,dp in syn_pkts: by_pair[(src,dst)].append((ts,sp,dp))
+    for (src,dst),evs in by_pair.items():
+        evs.sort(); n=len(evs); i=0
+        while i<n:
+            we=evs[i][0]+60; uports=set(); j=i
+            while j<n and evs[j][0]<=we: uports.add(evs[j][2]); j+=1
+            if len(uports)>=15:
+                op=sum(1 for p in uports if (dst,src,p,evs[i][1]) in syn_ack)
+                rate=len(uports)/max(evs[j-1][0]-evs[i][0],0.001)
+                conf=min(1.0,len(uports)/50)
+                _add(attacks,iocs,'TCP SYN Port Scan','Medium',evs[i][0],evs[j-1][0],src,dst,
+                     f'{len(uports)} ports, {op} open, {rate:.1f} SYN/s',
+                     f'{src} scanned {len(uports)} ports on {dst}.',conf)
+                iocs['ports'].update(uports); i=j
+            else: i+=1
+
+    # 2 — SYN Flood
+    by_tgt = collections.defaultdict(list)
+    for ts,src,dst,sp,dp in syn_pkts: by_tgt[(src,dst,dp)].append(ts)
+    for (src,dst,dp),tss in by_tgt.items():
+        tss.sort(); n=len(tss); i=0
+        while i<n:
+            we=tss[i]+30; j=i
+            while j<n and tss[j]<=we: j+=1
+            if j-i>=200:
+                rate=(j-i)/max(tss[j-1]-tss[i],0.001)
+                _add(attacks,iocs,'TCP SYN Flood','High',tss[i],tss[j-1],src,f'{dst}:{dp}',
+                     f'{j-i} SYN/30s, {rate:.0f}/s',f'SYN flood: {src} → {dst}:{dp}.',min(1.0,(j-i)/1000))
+                iocs['ports'].add(dp); i=j
+            else: i+=1
+
+    # 3 — UDP Port Scan
+    for (src,dst),dports in udp_probes.items():
+        if len(dports)>=15:
+            _add(attacks,iocs,'UDP Port Scan','Low',start_full,end_full,src,dst,
+                 f'{len(dports)} UDP ports probed',f'{src} probed {len(dports)} UDP ports on {dst}.',
+                 min(1.0,len(dports)/40))
+
+    # 4 — ICMP Flood
+    for src,tss in icmp_src.items():
+        tss.sort(); n=len(tss); i=0
+        while i<n:
+            we=tss[i]+1.0; j=i
+            while j<n and tss[j]<=we: j+=1
+            if j-i>=100:
+                _add(attacks,iocs,'ICMP Flood','High',tss[i],tss[j-1],src,'network',
+                     f'{j-i} ICMP echo/s',f'ICMP flood from {src} at {j-i} req/s.',min(1.0,(j-i)/500))
+                i=j
+            else: i+=1
+
+    # 5 — HTTP Brute-Force
+    for (src,dst,dp),tss in http_posts.items():
+        tss.sort(); n=len(tss); i=0
+        while i<n:
+            we=tss[i]+10; j=i
+            while j<n and tss[j]<=we: j+=1
+            if j-i>=30:
+                snips=http_snips[(src,dst,dp)][:3]
+                _add(attacks,iocs,'HTTP Brute-Force','High',tss[i],tss[j-1],src,f'{dst}:{dp}',
+                     f'{j-i} POST/10s',f'Brute-force login: {src} → {dst}:{dp}.',
+                     min(1.0,(j-i)/100),snips)
+                iocs['ports'].add(dp); i=j
+            else: i+=1
+
+    # 6 — SQL Injection
+    seen=set()
+    for ts,src,dst,dp,pl in sqli_hits:
+        if (src,dst,dp) not in seen:
+            seen.add((src,dst,dp))
+            snip=pl[:150].decode('utf-8','ignore')
+            _add(attacks,iocs,'SQL Injection Probe','Critical',ts,ts,src,f'{dst}:{dp}',
+                 'SQLi pattern in HTTP payload','SQL injection detected in HTTP request.',0.92,[snip])
+            iocs['signatures'].add('SQLi')
+
+    # 7 — Command Injection
+    seen=set()
+    for ts,src,dst,dp,pl in cmdi_hits:
+        if (src,dst,dp) not in seen:
+            seen.add((src,dst,dp))
+            snip=pl[:150].decode('utf-8','ignore')
+            _add(attacks,iocs,'Command Injection','Critical',ts,ts,src,f'{dst}:{dp}',
+                 'Shell command pattern in payload','OS command injection detected.',0.90,[snip])
+            iocs['signatures'].add('CMDi')
+
+    # 8 — XSS
+    seen=set()
+    for ts,src,dst,dp,pl in xss_hits:
+        if (src,dst,dp) not in seen:
+            seen.add((src,dst,dp))
+            snip=pl[:150].decode('utf-8','ignore')
+            _add(attacks,iocs,'XSS Probe','Medium',ts,ts,src,f'{dst}:{dp}',
+                 'XSS pattern in HTTP payload','Cross-site scripting probe detected.',0.85,[snip])
+            iocs['signatures'].add('XSS')
+
+    # 9 — DNS Exfiltration
+    for src,queries in dns_queries.items():
+        sus=[(ts,n) for ts,n in queries
+             if n and (max((len(l) for l in n.split('.')),default=0)>50
+                       or (n.split('.') and _entropy(n.split('.')[0])>4.2))]
+        if len(sus)>=3:
+            names=[n for _,n in sus[:3]]
+            _add(attacks,iocs,'DNS Exfiltration','High',sus[0][0],sus[-1][0],src,'DNS',
+                 f'{len(sus)} high-entropy DNS queries','DNS tunneling suspected — long/high-entropy labels.',
+                 0.80,names)
+            iocs['signatures'].add('DNS Tunnel')
+
+    # 10 — DNS Amplification
+    for src,sizes in dns_ans_sz.items():
+        if len(sizes)>=10:
+            avg=sum(sizes)//len(sizes)
+            if avg>512:
+                _add(attacks,iocs,'DNS Amplification','High',start_full,end_full,src,'DNS server',
+                     f'{len(sizes)} large DNS replies, avg={avg}B',
+                     f'DNS amplification: large responses directed at {src}.',0.75)
+
+    # 11 — Cleartext Credentials
+    seen=set()
+    for ts,src,dst,dp,pl in cred_hits:
+        if (src,dst,dp) not in seen:
+            seen.add((src,dst,dp))
+            svc=SENSITIVE_PORTS.get(dp,'plaintext')
+            snip=pl.decode('utf-8','ignore').strip()
+            _add(attacks,iocs,'Cleartext Credential Theft','Critical',ts,ts,src,f'{dst}:{dp}',
+                 f'Plaintext {svc} creds','Credentials sent in cleartext over unencrypted channel.',0.97,[snip])
+            iocs['ports'].add(dp); iocs['signatures'].add(f'Cleartext-{svc}')
+
+    # 12 — ARP Spoofing
+    for ip_addr,macs in arp_ip_mac.items():
+        if len(macs)>1:
+            _add(attacks,iocs,'ARP Spoofing','Critical',start_full,end_full,'Multiple Hosts',ip_addr,
+                 f'IP {ip_addr} claimed by {len(macs)} MACs',
+                 f'ARP poisoning: {ip_addr} advertised by {len(macs)} different MACs.',0.95)
+            iocs['signatures'].add('ARP Poison')
+
+    # 13 — Java RMI
+    rmi_clients=set()
+    for canon,pkts in tcp_sessions.items():
         for p in pkts:
-            if b'SSH-2.0-' in p['payload'][:32]:
-                server_node = (p['src'], p['sport'])
-                client_node = (p['dst'], p['dport'])
-                break
-        
-        if server_node and client_node:
-            client_bytes = server_bytes = 0
-            first_client_ts = first_server_ts = None
-            
+            if p['dport']==1099: rmi_clients.add((p['src'],p['dst']))
+    for (rc,rs) in rmi_clients:
+        for canon,pkts in tcp_sessions.items():
             for p in pkts:
-                if (p['src'], p['sport']) == client_node:
-                    client_bytes += p['payload_len']
-                    if first_client_ts is None and p['payload_len'] > 0:
-                        first_client_ts = p['ts']
-                elif (p['src'], p['sport']) == server_node:
-                    server_bytes += p['payload_len']
-                    if first_server_ts is None and p['payload_len'] > 0:
-                        first_server_ts = p['ts']
-            
-            if client_bytes > 0 and server_bytes >= 50 * client_bytes:
-                if first_client_ts and first_server_ts and (first_server_ts - first_client_ts) <= 1.0 and server_bytes > 1000000:
-                    attacks.append({
-                        'type': 'SSH Session Replay Attack',
-                        'severity': 'Critical',
-                        'start_ts': pkts[0]['ts'],
-                        'end_ts': pkts[-1]['ts'],
-                        'attacker': client_node[0],
-                        'target': f"{server_node[0]}:{server_node[1]}",
-                        'metrics': f"Client bytes: {client_bytes}, Server bytes: {server_bytes}, Ratio: {server_bytes/client_bytes:.1f}",
-                        'verdict': f"Massive asymmetric data transfer immediately following SSH handshake implies a replay attack or unauthorized bulk extraction."
-                    })
-                    iocs['ips'].add(client_node[0])
-                    iocs['signatures'].add('SSH-2.0- (anomaly)')
-
-    # 4. Retransmission / Replay Detection
-    if retransmissions:
-        zero_delays = [r for r in retransmissions if (r[0] - r[1]) <= 0.001] # account for minor float drift or 0.0
-        if len(zero_delays) >= 1 or len(retransmissions) >= 5: # Drastically lowered threshold to catch any replay!
-            attacks.append({
-                'type': 'TCP Retransmission / Replay Detection',
-                'severity': 'Medium' if len(zero_delays) == 0 else 'High',
-                'start_ts': retransmissions[0][0],
-                'end_ts': retransmissions[-1][0],
-                'attacker': retransmissions[0][2],
-                'target': f"Port {retransmissions[0][3]}",
-                'metrics': f"Total retransmissions: {len(retransmissions)}, Suspicious replays (delay ~0): {len(zero_delays)}",
-                'verdict': f"Detected duplicate payload sequences. Zero-delay duplicates indicate a synthetic replay attack, whilst delayed ones indicate heavy retransmissions."
-            })
-            iocs['ips'].add(retransmissions[0][2])
-
-    # 5. Java RMI Exploitation
-    rmi_connections = [(p['src'], p['dst']) for pkts in tcp_sessions.values() for p in pkts if p['dport'] == 1099]
-    for rmi_client, rmi_server in set(rmi_connections):
-        for pkts in tcp_sessions.values():
-            for p in pkts:
-                if p['src'] == rmi_server and p['dst'] == rmi_client and p['sport'] > 1024 and p['dport'] > 1024:
-                    attacks.append({
-                        'type': 'Java RMI Exploitation Pattern',
-                        'severity': 'Critical',
-                        'start_ts': p['ts'],
-                        'end_ts': p['ts'],
-                        'attacker': rmi_client,
-                        'target': f"{rmi_server}:1099",
-                        'metrics': f"Callback triggered to port {p['dport']}",
-                        'verdict': f"Client connected to Java RMI port 1099, followed by the server connecting back to the client on a high port."
-                    })
-                    iocs['ips'].add(rmi_client)
-                    iocs['ports'].update({1099, p['dport']})
+                if p['src']==rs and p['dst']==rc and p['sport']>1024 and p['dport']>1024:
+                    _add(attacks,iocs,'Java RMI Exploitation','Critical',p['ts'],p['ts'],rc,f'{rs}:1099',
+                         f'RMI callback port {p["dport"]}',
+                         'Java RMI exploit — server called back to client on high port.',0.88)
                     break
 
-    # 6. DNS Reconnaissance
-    for src, queries in dns_ptr_queries.items():
-        if len(queries) < 5: continue
-        queries.sort(key=lambda x: x[0])
-        n = len(queries)
-        i = 0
-        while i < n:
-            window_end = queries[i][0] + 60
-            j = i
-            while j < n and queries[j][0] <= window_end:
-                j += 1
-            if (j - i) >= 5:
-                attacks.append({
-                    'type': 'DNS Reconnaissance',
-                    'severity': 'Low',
-                    'start_ts': queries[i][0],
-                    'end_ts': queries[j-1][0],
-                    'attacker': src,
-                    'target': 'DNS Resolver',
-                    'metrics': f"PTR lookups count: {j-i} within 60s",
-                    'verdict': f"Host {src} performed rapid reverse DNS (PTR) lookups, common in network mapping."
-                })
-                iocs['ips'].add(src)
-                i += j
-            else:
-                i += 1
+    # 14 — TCP Replay
+    if retransmits:
+        zd=[r for r in retransmits if (r[0]-r[1])<=0.001]
+        if len(zd)>=1 or len(retransmits)>=5:
+            snips=[r[4].decode('utf-8','ignore')[:80] for r in retransmits[:3]]
+            _add(attacks,iocs,'TCP Replay Attack','High' if zd else 'Medium',
+                 retransmits[0][0],retransmits[-1][0],retransmits[0][2],f'Port {retransmits[0][3]}',
+                 f'{len(retransmits)} retransmits, {len(zd)} zero-delay replays',
+                 'Duplicate TCP segments — zero-delay copies indicate replay injection.',
+                 min(1.0,0.5+len(zd)*0.1),snips)
 
-    # 7. Protocol Anomaly / Service Probe
-    sensitive_ports = {5800: 'VNC', 2628: 'DICT', 5000: 'UPnP', 6667: 'IRC', 3389: 'RDP', 445: 'SMB'}
-    for ts, src, dst, sport, dport in syn_packets:
-        if dport in sensitive_ports:
-            has_rst = (dst, src, dport, sport) in rst_packets
-            if has_rst:
-                attacks.append({
-                    'type': 'Protocol Anomaly / Service Probe',
-                    'severity': 'Low',
-                    'start_ts': ts,
-                    'end_ts': ts,
-                    'attacker': src,
-                    'target': f"{dst}:{dport}",
-                    'metrics': f"Probed {sensitive_ports[dport]} ({dport})",
-                    'verdict': f"Probe detected on sensitive port {dport} ({sensitive_ports[dport]}) leading to a closed connection."
-                })
-                iocs['ips'].add(src)
-                iocs['ports'].add(dport)
+    # 15 — SSL/TLS Downgrade
+    seen=set()
+    for ts,src,dst,dp in ssl_hits:
+        if (src,dst) not in seen:
+            seen.add((src,dst))
+            _add(attacks,iocs,'SSL/TLS Downgrade','High',ts,ts,src,f'{dst}:{dp}',
+                 'SSLv2/SSLv3 ClientHello','TLS downgrade to broken SSL version attempted.',0.90)
+            iocs['signatures'].add('SSL Downgrade')
 
-    # 8. Traffic Volume Anomaly
+    # 16 — C2 Beaconing
+    for (src,dst,dp),events in beacon_flows.items():
+        if len(events)<10: continue
+        events.sort()
+        intervals=[events[i+1][0]-events[i][0] for i in range(len(events)-1)]
+        sizes=[e[1] for e in events]
+        if not intervals: continue
+        avg_int=sum(intervals)/len(intervals)
+        size_var=max(sizes)-min(sizes) if sizes else 9999
+        stddev=(sum((x-avg_int)**2 for x in intervals)/len(intervals))**0.5
+        jitter=stddev/avg_int if avg_int>0 else 1
+        if 5<=avg_int<=60 and jitter<0.25 and size_var<100:
+            conf=min(1.0,0.6+(0.25-jitter))
+            _add(attacks,iocs,'C2 Beaconing','Critical',events[0][0],events[-1][0],src,f'{dst}:{dp}',
+                 f'{len(events)} beacons, avg interval {avg_int:.1f}s, jitter {jitter:.2f}',
+                 f'Periodic heartbeat to {dst}:{dp} — consistent size/timing indicates C2 implant.',conf)
+            iocs['signatures'].add('C2 Beacon')
+
+    # 17 — Data Exfiltration
+    for (src,dst),nbytes in outbound.items():
+        if nbytes>5*1024*1024:
+            _add(attacks,iocs,'Data Exfiltration','High',start_full,end_full,src,dst,
+                 f'{nbytes/1024/1024:.1f} MB transferred outbound',
+                 f'Sustained large outbound transfer from {src} to {dst}.',
+                 min(1.0,nbytes/(50*1024*1024)))
+
+    # 18 — Traffic Volume Anomaly
     if buckets:
-        avg_vol = sum(buckets.values()) / len(buckets)
-        for t_idx, count in buckets.items():
-            if count > avg_vol * 3 and count > 100:
-                top_flow = max(flow_buckets[t_idx].items(), key=lambda x: x[1])
-                src, dst = top_flow[0]
-                attacks.append({
-                    'type': 'Traffic Volume Anomaly',
-                    'severity': 'Medium',
-                    'start_ts': start_ts_sec + t_idx * 10,
-                    'end_ts': start_ts_sec + t_idx * 10 + 10,
-                    'attacker': src,
-                    'target': dst,
-                    'metrics': f"Spike of {count} packets (Avg: {avg_vol:.1f}). Top flow: {top_flow[1]} pkts",
-                    'verdict': f"Anomalous traffic spike > 3x the baseline. Driven primarily by {src} -> {dst}."
-                })
+        avg=sum(buckets.values())/len(buckets)
+        for bkt,cnt in buckets.items():
+            if cnt>avg*3 and cnt>100:
+                top=max(flow_bkts[bkt].items(),key=lambda x:x[1])
+                s2,d2=top[0]
+                _add(attacks,iocs,'Traffic Volume Anomaly','Medium',
+                     start_sec+bkt*10,start_sec+bkt*10+10,s2,d2,
+                     f'{cnt} pkts (avg {avg:.0f}), top flow {top[1]} pkts',
+                     f'Traffic spike 3× baseline driven by {s2}→{d2}.',
+                     min(1.0,cnt/(avg*5)))
 
-    # Prepare string report output
-    unique_attacks = []
-    seen_sigs = set()
+    # Deduplicate and sort
+    unique=[]; seen_sig=set()
     for att in attacks:
-        sig = (att['type'], att['attacker'], att['target'])
-        if sig not in seen_sigs:
-            seen_sigs.add(sig)
-            unique_attacks.append(att)
-            
-    # Sort attacks by start_ts
-    unique_attacks.sort(key=lambda x: x['start_ts'])
+        sig=(att['type'],att['attacker'],att['target'])
+        if sig not in seen_sig:
+            seen_sig.add(sig); unique.append(att)
+    SEV_ORDER = {'Critical':0,'High':1,'Medium':2,'Low':3}
+    unique.sort(key=lambda x:(SEV_ORDER.get(x['severity'],9), -(x.get('confidence') or 0)))
 
-    dt_start = datetime.datetime.fromtimestamp(start_ts_full, tz=datetime.timezone.utc)
-    
-    rep = []
-    rep.append("PCAP METADATA")
-    rep.append(f"  File: {os.path.basename(filepath)}")
-    rep.append(f"  Capture start: {dt_start.strftime('%Y-%m-%d %H:%M:%S UTC')}")
-    rep.append(f"  Duration: {duration:.2f} seconds (~{duration/60:.2f} min)")
-    rep.append(f"  Total packets: {len(packets)}")
-    rep.append(f"  Protocols: TCP {protocols['TCP']}, UDP {protocols['UDP']}, ICMP {protocols['ICMP']}")
-    rep.append(f"  Hosts observed: {', '.join(sorted(list(hosts))) if hosts else 'None'}")
-    rep.append("")
-    rep.append("ATTACKS DETECTED")
-    
-    if not unique_attacks:
-        rep.append("  No attacks detected.")
+    # Build report text
+    dt=datetime.datetime.fromtimestamp(start_full,tz=datetime.timezone.utc)
+    rep=[
+        'PCAP METADATA',
+        f'  File: {os.path.basename(filepath)}',
+        f'  Capture start: {dt:%Y-%m-%d %H:%M:%S UTC}',
+        f'  Duration: {duration:.2f}s (~{duration/60:.2f} min)',
+        f'  Total packets: {len(packets)}',
+        f'  Protocols: TCP {protocols["TCP"]}  UDP {protocols["UDP"]}  ICMP {protocols["ICMP"]}  Other {protocols["Other"]}',
+        f'  Hosts observed: {", ".join(sorted(hosts)) if hosts else "None"}',
+        '',
+        f'ATTACKS DETECTED ({len(unique)})',
+    ]
+    if not unique:
+        rep.append('  No attacks detected.')
     else:
-        for idx, att in enumerate(unique_attacks, 1):
-            rep.append("  ─────────────────────────────────────")
-            rep.append(f"  Attack #{idx} — {att['type']}")
-            rep.append(f"  Severity: {att['severity']}")
-            rep.append(f"  Time window: t={att['start_ts']:.2f}s to t={att['end_ts']:.2f}s")
-            rep.append(f"  Attacker: {att['attacker']}")
-            rep.append(f"  Target: {att['target']}")
-            rep.append(f"  {att['metrics']}")
-            rep.append(f"  Verdict: {att['verdict']}")
-            
-    rep.append("")
-    rep.append("ATTACK CHAIN SUMMARY")
-    if unique_attacks:
-        chain = []
-        for a in unique_attacks:
-            chain.append(f"{a['attacker']} targeted {a['target']} with {a['type']}.")
-        rep.append("  " + " ".join(chain[:5]) + ("..." if len(chain) > 5 else ""))
-    else:
-        rep.append("  No attack sequence to summarize.")
-        
-    rep.append("")
-    rep.append("INDICATORS OF COMPROMISE")
-    rep.append(f"  Attacker IPs: {', '.join(sorted(list(iocs['ips']))) if iocs['ips'] else 'None'}")
-    rep.append(f"  Targeted ports: {', '.join(map(str, sorted(list(iocs['ports'])))) if iocs['ports'] else 'None'}")
-    rep.append(f"  Suspicious payload signatures: {', '.join(list(iocs['signatures'])) if iocs['signatures'] else 'None'}")
+        for i,a in enumerate(unique,1):
+            rep+=[f'  ──── Attack #{i} — {a["type"]} ────',
+                  f'  Severity: {a["severity"]}  |  MITRE: {a["mitre_technique_id"]} ({a["mitre_tactic"]})'
+                  f'  |  Confidence: {int(a["confidence"]*100)}%',
+                  f'  Attacker: {a["attacker"]}  →  Target: {a["target"]}',
+                  f'  {a["metrics"]}',
+                  f'  Verdict: {a["verdict"]}',
+                  '']
+
+    rep+=['INDICATORS OF COMPROMISE',
+          f'  IPs: {", ".join(sorted(iocs["ips"])) or "None"}',
+          f'  Ports: {", ".join(map(str,sorted(iocs["ports"]))) or "None"}',
+          f'  Signatures: {", ".join(sorted(iocs["signatures"])) or "None"}']
 
     return {
-        'report_text': "\n".join(rep),
-        'metadata': {
-            'file': filepath,
-            'capture_start': start_ts_full,
-            'duration': duration,
-            'total_packets': len(packets),
-            'protocols': protocols,
-            'hosts': list(hosts)
-        },
-        'attacks': unique_attacks,
-        'iocs': {
-            'ips': list(iocs['ips']),
-            'ports': list(iocs['ports']),
-            'signatures': list(iocs['signatures'])
-        }
+        'report_text': '\n'.join(rep),
+        'metadata': {'file':filepath,'capture_start':start_full,'duration':duration,
+                     'total_packets':len(packets),'protocols':protocols,'hosts':list(hosts)},
+        'attacks': unique,
+        'iocs': {'ips':list(iocs['ips']),'ports':list(iocs['ports']),'signatures':list(iocs['signatures'])}
     }
