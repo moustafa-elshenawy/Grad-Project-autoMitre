@@ -90,10 +90,11 @@ class SecBERTClassifier:
                 # Dynamic threshold: must be at least 30% of the top probability and non-zero
                 if prob > max(0.015, max_prob * 0.3):
                     technique_id = self.classes[i]
-                    # Scale deep learning probabilities (which are tiny over 600 classes) into 0-1 UI confidence
-                    # Option 1: Mathematical Calibration - Apply Square Root to naturally arc the curve closer to 1.0 (99%)
-                    base_scaled = min(0.98, 0.65 + (prob * 6.5))
-                    visual_conf = math.sqrt(base_scaled)
+                    # Relative calibration: scale each prediction relative to the top score.
+                    # Top prediction → 0.92, others drop proportionally.
+                    # This keeps weak secondary guesses below the 0.70 UI filter.
+                    relative_ratio = prob / max_prob if max_prob > 0 else 0
+                    visual_conf = 0.92 * relative_ratio
                     detected_techniques[technique_id] = round(float(visual_conf), 4)
 
             logger.info(f"SecBERT detected {len(detected_techniques)} techniques.")

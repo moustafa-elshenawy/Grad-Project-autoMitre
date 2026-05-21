@@ -58,7 +58,7 @@ joblib==1.5.3
 groq==1.0.0
 
 # ── Local LLM (Phi-3.5-mini, optional fallback) ───────────────────────────────
-llama_cpp_python==0.3.16
+# llama_cpp_python==0.3.16
 ollama==0.6.1
 
 # ── STIX / CTI Standards ──────────────────────────────────────────────────────

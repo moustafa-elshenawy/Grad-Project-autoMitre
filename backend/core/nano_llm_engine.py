@@ -3,7 +3,12 @@ import json
 import logging
 import httpx
 from typing import List, Dict, Any, Optional
-from llama_cpp import Llama
+
+try:
+    from llama_cpp import Llama
+    _LLAMA_CPP_AVAILABLE = True
+except ImportError:
+    _LLAMA_CPP_AVAILABLE = False
 
 from dotenv import load_dotenv
 
@@ -26,7 +31,9 @@ class NanoLLMEngine:
     def __init__(self):
         self.local_llm = None
         self.is_local_loaded = False
-        self.use_cloud = bool(GROQ_API_KEY)
+        # Read the key at init time (after load_dotenv has run), not at module level
+        _key = os.getenv("GROQ_API_KEY") or GROQ_API_KEY
+        self.use_cloud = bool(_key)
         
         if self.use_cloud:
             log.info("NanoLLMEngine: Cloud Llama 3 (Groq) enabled. Low latency, 0 local memory load.")
@@ -37,6 +44,10 @@ class NanoLLMEngine:
         if self.is_local_loaded:
             return True
 
+        if not _LLAMA_CPP_AVAILABLE:
+            log.warning("llama_cpp not installed — local Phi-3.5 unavailable.")
+            return False
+
         if not os.path.exists(LOCAL_MODEL_PATH):
             log.warning(f"Phi-3.5-mini GGUF not found at {LOCAL_MODEL_PATH}.")
             return False
@@ -45,12 +56,12 @@ class NanoLLMEngine:
             log.info(f"Loading local Phi-3.5-mini from {LOCAL_MODEL_PATH}...")
             self.local_llm = Llama(
                 model_path=LOCAL_MODEL_PATH,
-                n_gpu_layers=-1, # Force Metal
+                n_gpu_layers=-1,
                 n_ctx=4096,
                 verbose=False
             )
             self.is_local_loaded = True
-            log.info("Local Phi-3.5-mini successfully loaded into M1 GPU.")
+            log.info("Local Phi-3.5-mini successfully loaded.")
             return True
         except Exception as e:
             log.error(f"Failed to load local Phi-3.5-mini: {e}")
@@ -131,7 +142,13 @@ class NanoLLMEngine:
         return self._fallback_narrative(techniques)
 
     def _parse_json_result(self, text: str, techniques: list) -> dict:
-        """Robust JSON parsing for LLM output."""
+        """
+        Robust JSON parsing for LLM output.
+        The LLM (Groq Llama-3) performs dynamic technique expansion:
+        it receives the 5 SecBERT baseline techniques as context and adds
+        further relevant MITRE ATT&CK IDs it reasons from the text.
+        This is intentional — Groq gives 8+ results, local Phi-3.5 gives 5.
+        """
         try:
             # Clean up potential markdown
             if "```json" in text:
@@ -144,8 +161,10 @@ class NanoLLMEngine:
             end = text.rfind('}') + 1
             if start != -1 and end != -1:
                 parsed = json.loads(text[start:end])
-                
-                # Merge techniques safely (handle dicts and strings)
+
+                # Merge LLM-detected techniques with SecBERT baseline.
+                # Groq reasons over the full CTI context and adds techniques
+                # beyond SecBERT's top-5 — this is the intended expansion.
                 new_tids = [tid for tid in parsed.get("detected_techniques", []) if isinstance(tid, str)]
                 all_ttps = techniques.copy()
                 existing_ids = {t.get("id") for t in all_ttps if isinstance(t, dict)}

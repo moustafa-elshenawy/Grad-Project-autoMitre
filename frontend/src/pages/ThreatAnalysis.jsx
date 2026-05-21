@@ -514,6 +514,36 @@ export default function ThreatAnalysis() {
                             <label className="form-label">Threat Description / Log / Event</label>
                             <textarea className="form-input" placeholder="Paste threat intelligence summary, CTI report text, or system logs..." value={text} onChange={(e) => setText(e.target.value)} style={{ height: 160, fontSize: 13 }} />
                         </div>
+
+                        {/* Deep Analysis Toggle */}
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginTop: 12, padding: '10px 14px', background: 'rgba(255,255,255,0.03)', borderRadius: 8, border: '1px solid rgba(255,255,255,0.07)' }}>
+                            <button
+                                id="deep-analysis-toggle"
+                                onClick={() => setDeepAnalysis(v => !v)}
+                                style={{
+                                    width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer',
+                                    background: deepAnalysis ? 'var(--accent-green, #22c55e)' : 'rgba(255,255,255,0.15)',
+                                    position: 'relative', transition: 'background 0.25s', flexShrink: 0
+                                }}
+                            >
+                                <span style={{
+                                    position: 'absolute', top: 3, left: deepAnalysis ? 23 : 3,
+                                    width: 18, height: 18, borderRadius: '50%', background: '#fff',
+                                    transition: 'left 0.25s', boxShadow: '0 1px 3px rgba(0,0,0,0.4)'
+                                }} />
+                            </button>
+                            <div>
+                                <div style={{ fontSize: 13, fontWeight: 600, color: deepAnalysis ? '#22c55e' : '#94a3b8' }}>
+                                    Deep Analysis {deepAnalysis ? 'ON' : 'OFF'}
+                                </div>
+                                <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>
+                                    {deepAnalysis
+                                        ? 'Groq LLM (Llama-3) will generate a full narrative, technical dive & predicted attacker steps'
+                                        : 'Local SecBERT + keyword matching only — faster, no API key required'}
+                                </div>
+                            </div>
+                        </div>
+
                         <div style={{ display: 'flex', justifyContent: 'flex-end', alignItems: 'center', marginTop: 16, gap: 12 }}>
                             <button className="btn btn-secondary" onClick={() => setText(exampleText)} disabled={loading} style={{ height: 38 }}>
                                 Load Example
@@ -528,6 +558,7 @@ export default function ThreatAnalysis() {
                         </div>
                     </div>
                 )}
+
 
                 {tab === 'hash' && (
                     <div>

@@ -605,9 +605,16 @@ def get_attack_techniques(technique_scores: Dict[str, float], text: str) -> List
     final_techniques = []
     text_len = len(text)
     
-    # Define a strict total cap for very short logs to prevent noise over-mapping
-    # Standard logs (e.g. 1-2 lines) usually shouldn't have more than 2-3 techniques.
-    total_cap = 3 if text_len < 120 else 25
+    # Graduated cap: scales with actual input density.
+    # Short log lines → 3 | single-paragraph CTI → 8 | multi-paragraph report → 15
+    if text_len < 120:
+        total_cap = 3      # Single log line / short indicator
+    elif text_len < 400:
+        total_cap = 6      # Short paragraph / alert summary
+    elif text_len < 1000:
+        total_cap = 10     # Multi-sentence CTI report
+    else:
+        total_cap = 15     # Full threat report
     
     tier_2_count = 0
     tier_3_count = 0
