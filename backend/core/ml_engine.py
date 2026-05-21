@@ -270,10 +270,18 @@ class EnsembleMLEngine:
             # Convert to list of dicts for LLM/UI
             ttp_list = [{"id": tid, "name": "Classified Technique", "confidence": conf} for tid, conf in detected_ttps.items()]
             
-            # SecBERT Severity proxy (average confidence of top TTPs * 10)
+            # SecBERT Severity proxy — based on technique COUNT, not display confidence.
+            # Using display confidence caused a regression: my calibration fix (honest
+            # 0.30–0.92 range) lowered avg confidence → lowered severity unfairly.
+            # Technique count is a better severity proxy: more TTPs = broader kill chain.
+            #   1 TTP  → 6.0  (targeted/single-stage)
+            #   2 TTPs → 7.5  (multi-stage)
+            #   3 TTPs → 8.5  (coordinated attack)
+            #   5 TTPs → 9.5  (full kill chain — Critical)
             secbert_score = 5.0
             if detected_ttps:
-                secbert_score = min(10.0, sum(detected_ttps.values()) / len(detected_ttps) * 10)
+                count = len(detected_ttps)
+                secbert_score = min(10.0, 5.0 + (count * 0.9))
 
             # 4. Deep Intelligence Stage 2: Phi-3.5 Reasoning
             from core.nano_llm_engine import nano_llm
