@@ -2,7 +2,7 @@ import { useState, useRef, useEffect } from 'react'
 import { Send, Bot, User, Sparkles, Shield, FileText, Download } from 'lucide-react'
 import axios from 'axios'
 
-const API = 'http://localhost:8000'
+const API = 'http://127.0.0.1:8000'
 
 const WELCOME_MESSAGE = {
     role: 'assistant',
@@ -72,7 +72,7 @@ export default function AIChat() {
             }])
         } catch {
             // Offline fallback
-            const offline = `I'm unable to reach the backend API. Please ensure the autoMITRE API server is running:\n\n\`\`\`\ncd backend && source venv/bin/activate\npython main.py\n\`\`\`\n\nThe server should start on **http://localhost:8000**`
+            const offline = `I'm unable to reach the backend API. Please ensure the autoMITRE API server is running:\n\n\`\`\`\ncd backend && source venv/bin/activate\npython main.py\n\`\`\`\n\nThe server should start on **http://127.0.0.1:8000**`
             setMessages([...newMessages, { role: 'assistant', content: offline, suggestions: [] }])
         }
         setLoading(false)

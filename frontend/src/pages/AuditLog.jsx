@@ -5,7 +5,7 @@ import { Shield, Search, Filter, RefreshCw, Download, Activity,
 import axios from 'axios'
 import { useDataView } from '../contexts/DataViewContext'
 
-const API = 'http://localhost:8000'
+const API = 'http://127.0.0.1:8000'
 
 // ── Visual config per category ────────────────────────────────────────────────
 const CATEGORY_CONFIG = {

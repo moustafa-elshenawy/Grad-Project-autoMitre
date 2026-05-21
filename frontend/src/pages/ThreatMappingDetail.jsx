@@ -15,7 +15,7 @@ export default function ThreatMappingDetail() {
             setLoading(true)
             try {
                 const token = localStorage.getItem('token')
-                const res = await fetch(`http://localhost:8000/api/analyze/threats/${id}`, {
+                const res = await fetch(`http://127.0.0.1:8000/api/analyze/threats/${id}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 })
 

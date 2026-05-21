@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { User, Shield, Key, LogOut, Save, AlertCircle, CheckCircle, Activity, Calendar, Clock } from 'lucide-react';
 
-const API_BASE = 'http://localhost:8000';
+const API_BASE = 'http://127.0.0.1:8000';
 
 export default function Profile() {
     const { user, token, logout, updateUser } = useAuth();

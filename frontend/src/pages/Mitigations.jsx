@@ -15,7 +15,7 @@ export default function Mitigations() {
             try {
                 const token = localStorage.getItem('token')
                 // Re-use the existing history endpoint which returns detailed AI analyses
-                const res = await fetch(`http://localhost:8000/api/users/history${viewParam}`, {
+                const res = await fetch(`http://127.0.0.1:8000/api/users/history${viewParam}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 })
                 if (res.ok) {

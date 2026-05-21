@@ -3,7 +3,7 @@ import { RefreshCw, ExternalLink, Settings2, ChevronDown, ChevronUp, CheckCircle
 import axios from 'axios'
 import { useDataView } from '../contexts/DataViewContext'
 
-const API = 'http://localhost:8000'
+const API = 'http://127.0.0.1:8000'
 
 const SEV_COLOR = { Critical: '#ef4444', High: '#f97316', Medium: '#f59e0b', Low: '#22c55e', Informational: '#64748b' }
 const SEV_CLASS = { Critical: 'critical', High: 'high', Medium: 'medium', Low: 'low' }

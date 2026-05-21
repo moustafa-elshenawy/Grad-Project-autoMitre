@@ -3,7 +3,7 @@ import { Download, FileJson, FileText, Database, Zap, CheckCircle, Briefcase, Sh
 import axios from 'axios'
 import { useDataView } from '../contexts/DataViewContext'
 
-const API = 'http://localhost:8000'
+const API = 'http://127.0.0.1:8000'
 
 const EXPORT_FORMATS = [
     {

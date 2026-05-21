@@ -16,8 +16,8 @@ export default function SavedThreats() {
             try {
                 const token = localStorage.getItem('token')
                 const endpoint = threatSource === 'my_threats'
-                    ? `http://localhost:8000/api/users/history${viewParam}`
-                    : `http://localhost:8000/api/intelligence/osint-history${viewParam}`
+                    ? `http://127.0.0.1:8000/api/users/history${viewParam}`
+                    : `http://127.0.0.1:8000/api/intelligence/osint-history${viewParam}`
 
                 const res = await fetch(endpoint, {
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -46,8 +46,8 @@ export default function SavedThreats() {
         try {
             const token = localStorage.getItem('token')
             const endpoint = threatSource === 'my_threats'
-                ? `http://localhost:8000/api/analyze/threats/${id}`
-                : `http://localhost:8000/api/intelligence/osint/${id}`
+                ? `http://127.0.0.1:8000/api/analyze/threats/${id}`
+                : `http://127.0.0.1:8000/api/intelligence/osint/${id}`
 
             const res = await fetch(endpoint, {
                 method: 'DELETE',

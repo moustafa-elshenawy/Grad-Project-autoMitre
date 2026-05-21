@@ -8,7 +8,7 @@ export default function Settings() {
     const { viewParam, isContextualAdmin } = useDataView()
     const isAdmin = user?.role === 'admin'
     const [saved, setSaved] = useState(false)
-    const [backendUrl, setBackendUrl] = useState('http://localhost:8000')
+    const [backendUrl, setBackendUrl] = useState('http://127.0.0.1:8000')
     const [attackVersion, setAttackVersion] = useState('v14')
 
     // API Keys Settings
@@ -119,7 +119,7 @@ export default function Settings() {
                 <div className="form-group">
                     <label className="form-label">Backend API URL</label>
                     <input className="form-input" value={backendUrl} onChange={e => setBackendUrl(e.target.value)} disabled={!isAdmin} />
-                    <span style={{ fontSize: 11, color: '#475569' }}>Default: http://localhost:8000 — change for remote deployment</span>
+                    <span style={{ fontSize: 11, color: '#475569' }}>Default: http://127.0.0.1:8000 — change for remote deployment</span>
                 </div>
 
                 <div className="form-group" style={{ marginTop: 15 }}>

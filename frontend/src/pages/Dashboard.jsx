@@ -1,11 +1,11 @@
 import { useState, useEffect } from 'react'
 import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, ResponsiveContainer, XAxis, YAxis, Tooltip, CartesianGrid } from 'recharts'
-import { AlertTriangle, Shield, Activity, TrendingUp, Zap, Globe, Lock, Clock, Target, Crosshair, Compass, Layers, List } from 'lucide-react'
+import { AlertTriangle, Shield, Activity, TrendingUp, Zap, Globe, Lock, Clock, Target, Crosshair, Compass, Layers, List, Play } from 'lucide-react'
 import axios from 'axios'
 import { useDataView } from '../contexts/DataViewContext'
 import { useAuth } from '../contexts/AuthContext'
 
-const API = 'http://localhost:8000'
+const API = 'http://127.0.0.1:8000'
 
 const TACTIC_COLORS = {
     'Initial Access': '#ef4444',
@@ -24,19 +24,18 @@ const TACTIC_COLORS = {
     'Reconnaissance': '#94a3b8'
 }
 
-const TACTIC_DISPLAY_NAMES = {
-    'Command and Control': 'C2',
-    'Privilege Escalation': 'Priv. Escalation'
-}
-
 const CustomTooltip = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
         return (
-            <div style={{ background: 'rgba(6,11,24,0.95)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 8, padding: '10px 14px', fontSize: 12 }}>
-                <p style={{ fontWeight: 600, marginBottom: 6, color: '#f0f4ff' }}>{label}</p>
+            <div style={{ background: 'rgba(10, 15, 20, 0.95)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, padding: '12px 16px', fontSize: 12 }}>
+                <p style={{ fontWeight: 600, marginBottom: 8, color: '#f0f4ff' }}>{label}</p>
                 {payload.map(p => (
-                    <div key={p.name} style={{ color: p.color, display: 'flex', justifyContent: 'space-between', gap: 16 }}>
-                        <span>{p.name}:</span><span style={{ fontWeight: 700 }}>{p.value}</span>
+                    <div key={p.name} style={{ color: p.color, display: 'flex', justifyContent: 'space-between', gap: 24, marginBottom: 4 }}>
+                        <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                            <div style={{ width: 8, height: 8, borderRadius: '50%', background: p.color }} />
+                            {p.name}
+                        </span>
+                        <span style={{ fontWeight: 700, fontFamily: "'JetBrains Mono', monospace" }}>{p.value}</span>
                     </div>
                 ))}
             </div>
@@ -46,7 +45,6 @@ const CustomTooltip = ({ active, payload, label }) => {
 }
 
 export default function Dashboard() {
-    const { user } = useAuth()
     const [stats, setStats] = useState({
         total_threats: 0, critical_threats: 0, high_threats: 0,
         medium_threats: 0, low_threats: 0, techniques_covered: 0,
@@ -57,7 +55,8 @@ export default function Dashboard() {
     const [recentThreats, setRecentThreats] = useState([])
     const [tacticCoverage, setTacticCoverage] = useState([])
     const [trends, setTrends] = useState(null)
-    const { viewParam, viewParamAmp, viewMode } = useDataView()
+    const { viewParam, viewMode } = useDataView()
+    const { user } = useAuth()
 
     useEffect(() => {
         const token = localStorage.getItem('token')
@@ -81,31 +80,6 @@ export default function Dashboard() {
             setRecentThreats(r.data.threats.slice(0, 5))
         }).catch(() => { })
 
-        axios.get(`${API}/api/framework/coverage${viewParam}`, { headers }).then(r => {
-            if (r.data.attack && r.data.attack.by_tactic) {
-                const tactics = Object.entries(r.data.attack.by_tactic).map(([name, stats]) => ({
-                    name: TACTIC_DISPLAY_NAMES[name] || name,
-                    fullName: name,
-                    covered: stats.covered,
-                    total: stats.total,
-                    color: TACTIC_COLORS[name] || '#64748b'
-                }))
-                // Sort by standard kill chain order if possible, or alphabetically
-                const sortOrder = [
-                    'Reconnaissance', 'Resource Development', 'Initial Access', 'Execution', 
-                    'Persistence', 'Priv. Escalation', 'Defense Evasion', 'Credential Access', 
-                    'Discovery', 'Lateral Movement', 'Collection', 'C2', 'Exfiltration', 'Impact'
-                ]
-                tactics.sort((a, b) => {
-                    const idxA = sortOrder.indexOf(a.name)
-                    const idxB = sortOrder.indexOf(b.name)
-                    if (idxA !== -1 && idxB !== -1) return idxA - idxB
-                    return a.name.localeCompare(b.name)
-                })
-                setTacticCoverage(tactics)
-            }
-        }).catch(() => { })
-
         axios.get(`${API}/api/dashboard/trends${viewParam}`, { headers }).then(r => {
             setTrends(r.data)
         }).catch(() => { })
@@ -116,151 +90,126 @@ export default function Dashboard() {
         { name: 'Critical', value: stats.critical_threats, color: '#ef4444' },
         { name: 'High', value: stats.high_threats, color: '#f97316' },
         { name: 'Medium', value: stats.medium_threats, color: '#f59e0b' },
-        { name: 'Low', value: stats.low_threats, color: '#22c55e' },
+        { name: 'Low', value: stats.low_threats, color: '#10b981' },
     ].filter(s => s.value > 0)
 
-    const sevClass = (s) => ({ 'Critical': 'critical', 'High': 'high', 'Medium': 'medium', 'Low': 'low' }[s] || 'info')
-
     return (
-        <div>
-            {/* Header Section */}
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
-                <div>
-                    <h2 style={{ fontSize: 24, fontWeight: 800, color: '#f8fafc', marginBottom: 4 }}>Welcome back, {user?.username || 'Analyst'}!</h2>
-                    <p style={{ color: '#94a3b8', fontSize: 14 }}>Here's what's happening with your security posture today.</p>
-                </div>
-                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-                    <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', padding: '8px 16px', borderRadius: 10, fontSize: 13, color: '#94a3b8', fontWeight: 500 }}>
-                        <Clock size={14} style={{ display: 'inline', verticalAlign: 'text-bottom', marginRight: 6 }} /> Last 7 Days
+        <div style={{ maxWidth: 1400, margin: '0 auto' }}>
+            <div className="dashboard-grid">
+                
+                {/* 1. Welcome Card (Span 2) */}
+                <div className="card col-span-2" style={{ display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ marginBottom: 24 }}>
+                        <h2 style={{ fontSize: 28, fontWeight: 700, color: '#fff', marginBottom: 8, fontFamily: "'Inter', sans-serif", letterSpacing: '-0.02em', textTransform: 'none' }}>
+                            Welcome back, {user?.username || 'Analyst'}!
+                        </h2>
+                        <p style={{ color: '#9CA3AF', fontSize: 14 }}>
+                            Your environment is calibrated. The AI has refined your threat landscape.
+                        </p>
                     </div>
-                    <button className="btn btn-primary" onClick={() => window.location.href = '/analyze'}>
-                        <Activity size={16} /> Run New Analysis
-                    </button>
-                </div>
-            </div>
 
-            <div className="bento-grid">
-                {/* 1. Threat Activity (Wide) */}
-                <div className="card col-span-8" style={{ display: 'flex', flexDirection: 'column' }}>
-                    <div className="card-header">
-                        <div className="card-title"><Activity size={16} color="var(--bold-primary)" /> Threat Activity (7-Day)</div>
-                        <span className="badge badge-info">Live</span>
-                    </div>
-                    <div style={{ flex: 1, minHeight: 280 }}>
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={activity}>
-                                <defs>
-                                    <linearGradient id="gCrit" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
-                                    </linearGradient>
-                                    <linearGradient id="gHigh" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#f97316" stopOpacity={0.3} />
-                                        <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
-                                    </linearGradient>
-                                </defs>
-                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-                                <XAxis dataKey="day" stroke="#475569" tick={{ fontSize: 11 }} />
-                                <YAxis stroke="#475569" tick={{ fontSize: 11 }} />
-                                <Tooltip content={<CustomTooltip />} />
-                                <Area type="monotone" dataKey="critical" name="Critical" stroke="#ef4444" fill="url(#gCrit)" strokeWidth={2} />
-                                <Area type="monotone" dataKey="high" name="High" stroke="#f97316" fill="url(#gHigh)" strokeWidth={2} />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
-                </div>
-
-                {/* 2. Stat Cards (Compact 2x2 grid) */}
-                <div className="col-span-4" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-6)' }}>
-                    <div className="stat-card critical" style={{ padding: '16px' }}>
-                        <div className="stat-label">Total Threats</div>
-                        <div className="stat-number" style={{ fontSize: 32 }}>{stats.total_threats.toLocaleString()}</div>
-                        <div className="stat-change" style={{ color: '#ef4444' }}>
-                            <TrendingUp size={11} /> +12% this week
-                        </div>
-                    </div>
-                    <div className="stat-card" style={{ padding: '16px' }}>
-                        <div className="stat-label">Avg Risk Score</div>
-                        <div className="stat-number" style={{ fontSize: 32, background: 'linear-gradient(135deg, var(--bold-primary), var(--bold-secondary))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                            {stats.risk_score_avg}
-                        </div>
-                        <div className="stat-change" style={{ color: '#f97316' }}>
-                            <TrendingUp size={11} /> HIGH severity
-                        </div>
-                    </div>
-                    <div className="stat-card" style={{ padding: '16px' }}>
-                        <div className="stat-label">Frameworks</div>
-                        <div className="stat-number" style={{ fontSize: 32 }}>{stats.frameworks_mapped}</div>
-                        <div className="stat-change" style={{ color: 'var(--bold-primary)' }}>
-                            <Lock size={11} /> Active
-                        </div>
-                    </div>
-                    <div className="stat-card" style={{ padding: '16px' }}>
-                        <div className="stat-label">ATT&CK Map</div>
-                        <div className="stat-number" style={{ fontSize: 32 }}>{stats.techniques_covered}</div>
-                        <div className="stat-change" style={{ color: '#10b981' }}>
-                            <Shield size={11} /> Techniques
-                        </div>
-                    </div>
-                </div>
-
-                {/* 3. Recent Threats Table (Wide) */}
-                <div className="card col-span-8">
-                    <div className="card-header">
-                        <div className="card-title"><Clock size={16} color="var(--bold-primary)" /> Recent Threats</div>
-                        <a href="/feed" style={{ fontSize: 11, color: 'var(--bold-primary)', textDecoration: 'none' }}>View all →</a>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {recentThreats.length === 0 ? (
-                            <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: 13, background: 'rgba(255,255,255,0.02)', borderRadius: 6 }}>
-                                No recent threats. Analysis feed is clear.
+                    <div style={{ flex: 1, background: 'rgba(0,0,0,0.2)', borderRadius: 12, padding: 20, border: '1px solid rgba(255,255,255,0.03)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#fff', fontSize: 14, fontWeight: 600 }}>
+                                <Zap size={16} color="#00ff41" />
+                                Threat Activity (7-Day)
                             </div>
-                        ) : recentThreats.map(t => (
-                            <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: 'rgba(255,255,255,0.02)', borderRadius: 10 }}>
-                                <div style={{ width: 8, height: 8, borderRadius: '50%', background: t.severity === 'Critical' ? '#ef4444' : '#f97316', flexShrink: 0 }} />
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontSize: 13, fontWeight: 600, color: '#f0f4ff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.title}</div>
-                                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{t.tactic}</div>
-                                </div>
-                                <span className="badge badge-attack" style={{ fontFamily: 'JetBrains Mono,monospace', fontSize: 10, flexShrink: 0 }}>{t.technique}</span>
-                                <span className={`badge badge-${sevClass(t.severity)}`} style={{ flexShrink: 0 }}>{t.severity}</span>
-                                <span style={{ fontSize: 11, color: '#64748b', flexShrink: 0, width: 60, textAlign: 'right' }}>{new Date(t.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                            </div>
-                        ))}
+                            <span style={{ fontSize: 24, fontWeight: 700, color: '#fff', fontFamily: "'JetBrains Mono', monospace" }}>
+                                {stats.total_threats} <span style={{ fontSize: 12, color: '#9CA3AF', fontWeight: 500, fontFamily: "'Inter', sans-serif" }}>Threats this week</span>
+                            </span>
+                        </div>
+                        <div style={{ height: 160 }}>
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart data={activity} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
+                                    <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(255,255,255,0.05)' }} />
+                                    <XAxis dataKey="day" hide />
+                                    <Bar dataKey="critical" stackId="a" fill="#ef4444" radius={[0, 0, 4, 4]} />
+                                    <Bar dataKey="high" stackId="a" fill="#f97316" />
+                                    <Bar dataKey="medium" stackId="a" fill="#f59e0b" />
+                                    <Bar dataKey="low" stackId="a" fill="#10b981" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 12, color: '#6B7280', fontSize: 11, fontFamily: "'JetBrains Mono', monospace" }}>
+                            <span>S</span><span>M</span><span>T</span><span>W</span><span>T</span><span>F</span><span>S</span>
+                        </div>
                     </div>
                 </div>
 
-                {/* 4. Severity Distribution (Narrow) */}
-                <div className="card col-span-4" style={{ display: 'flex', flexDirection: 'column' }}>
-                    <div className="card-header">
-                        <div className="card-title"><AlertTriangle size={16} color="var(--bold-primary)" /> Severity Distribution</div>
+                {/* 2. Global Risk Score (Span 1) */}
+                <div className="card col-span-1" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#D1D5DB', fontSize: 13, fontWeight: 600, width: '100%', marginBottom: 'auto' }}>
+                        <Target size={15} color="#00ff41" /> Global Risk Score
                     </div>
+                    
+                    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', flex: 1 }}>
+                        <div style={{ color: '#10b981', fontSize: 12, fontWeight: 600, letterSpacing: '0.1em', marginBottom: 8, textTransform: 'uppercase' }}>
+                            Awaiting Assessment
+                        </div>
+                        <div style={{ 
+                            fontSize: 56, 
+                            fontWeight: 900, 
+                            fontFamily: "'JetBrains Mono', monospace", 
+                            color: '#fff',
+                            textShadow: '0 0 30px rgba(0, 255, 65, 0.4)',
+                            lineHeight: 1
+                        }}>
+                            {stats.risk_score_avg.toFixed(1)}
+                        </div>
+                        <div style={{ marginTop: 24 }}>
+                            <button style={{ 
+                                background: 'transparent', 
+                                border: '1px solid rgba(0,255,65,0.3)', 
+                                color: '#00ff41', 
+                                padding: '8px 16px', 
+                                borderRadius: 20,
+                                fontSize: 12,
+                                fontWeight: 600,
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: 6,
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                            }}
+                            onMouseEnter={e => { e.currentTarget.style.background = 'rgba(0,255,65,0.1)'; e.currentTarget.style.borderColor = '#00ff41' }}
+                            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.borderColor = 'rgba(0,255,65,0.3)' }}
+                            >
+                                <Play size={12} fill="#00ff41" /> Start Risk Tracker
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                {/* 3. Severity Distribution (Span 1) */}
+                <div className="card col-span-1" style={{ display: 'flex', flexDirection: 'column' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#D1D5DB', fontSize: 13, fontWeight: 600, marginBottom: 16 }}>
+                        <Layers size={15} color="#00ff41" /> Severity Summary
+                    </div>
+                    
                     <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                         {severityDist.length === 0 ? (
-                            <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
-                                No threats analyzed yet. Get started in Threat Analysis.
-                            </div>
+                            <div style={{ textAlign: 'center', color: '#6B7280', fontSize: 13 }}>No threats analyzed</div>
                         ) : (
                             <>
-                                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
-                                    <ResponsiveContainer width={160} height={160}>
+                                <div style={{ height: 160, position: 'relative' }}>
+                                    <ResponsiveContainer width="100%" height="100%">
                                         <PieChart>
-                                            <Pie data={severityDist} cx="50%" cy="50%" innerRadius={50} outerRadius={75} dataKey="value" strokeWidth={0}>
+                                            <Pie data={severityDist} cx="50%" cy="50%" innerRadius={50} outerRadius={70} paddingAngle={5} dataKey="value" strokeWidth={0}>
                                                 {severityDist.map((e, i) => <Cell key={i} fill={e.color} />)}
                                             </Pie>
+                                            <Tooltip content={<CustomTooltip />} />
                                         </PieChart>
                                     </ResponsiveContainer>
                                 </div>
-                                <div>
+                                <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
                                     {severityDist.map(s => (
-                                        <div key={s.name} style={{ marginBottom: 12 }}>
-                                            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
-                                                <span style={{ color: s.color, fontWeight: 600 }}>{s.name}</span>
-                                                <span style={{ color: '#94a3b8', fontFamily: 'JetBrains Mono, monospace' }}>{s.value}</span>
+                                        <div key={s.name} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                <div style={{ width: 8, height: 8, borderRadius: '50%', background: s.color, boxShadow: `0 0 10px ${s.color}` }} />
+                                                <span style={{ color: '#D1D5DB' }}>{s.name}</span>
                                             </div>
-                                            <div className="progress-bar">
-                                                <div className="progress-bar-fill" style={{ width: `${(s.value / Math.max(stats.total_threats, 1)) * 100}%`, background: s.color }} />
-                                            </div>
+                                            <span style={{ color: '#fff', fontWeight: 600, fontFamily: "'JetBrains Mono', monospace" }}>{s.value}</span>
                                         </div>
                                     ))}
                                 </div>
@@ -269,108 +218,132 @@ export default function Dashboard() {
                     </div>
                 </div>
 
-                {/* 5. Tactic Coverage (Narrow) */}
-                <div className="card col-span-4">
-                    <div className="card-header">
-                        <div className="card-title"><Shield size={16} color="var(--bold-primary)" /> ATT&CK Coverage</div>
+                {/* 4. AI Assistant / Prediction (Span 2) */}
+                <div className="card col-span-2" style={{ display: 'flex', flexDirection: 'column', position: 'relative', overflow: 'hidden', minHeight: 320 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#D1D5DB', fontSize: 13, fontWeight: 600, marginBottom: 24, zIndex: 2 }}>
+                        <Compass size={15} color="#00ff41" /> AI Assistant
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                        {tacticCoverage.slice(0, 10).map(t => (
-                            <div key={t.name} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11 }}>
-                                <span style={{ width: 110, color: '#94a3b8', flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</span>
-                                <div className="progress-bar" style={{ flex: 1, height: 8 }}>
-                                    <div className="progress-bar-fill" style={{ width: `${(t.covered / t.total) * 100}%`, background: t.color }} />
-                                </div>
-                                <span style={{ width: 35, textAlign: 'right', color: '#64748b', fontFamily: 'JetBrains Mono, monospace' }}>{t.covered}/{t.total}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
 
-                {/* 6. AI Predictions (Narrow) */}
-                <div className="card col-span-4">
-                    <div className="card-header">
-                        <div className="card-title"><Compass size={16} color="var(--bold-primary)" /> AI Insights</div>
-                        <span className="badge badge-info">AutoMITRE</span>
-                    </div>
-                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                        {trends?.top_predictions?.length ? (
-                            <div style={{ background: 'linear-gradient(135deg, rgba(132, 204, 22, 0.05), rgba(20, 184, 166, 0.05))', border: '1px solid rgba(132, 204, 22, 0.1)', padding: 20, borderRadius: 12 }}>
-                                <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(132, 204, 22, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                                        <Zap size={16} color="var(--bold-primary)" />
-                                    </div>
-                                    <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Threat Trajectory</div>
-                                </div>
-                                <p style={{ color: '#94a3b8', fontSize: 13, lineHeight: '1.6', margin: 0 }}>
-                                    Based on active footprints, attackers will most likely prioritize 
-                                    <span style={{ color: 'var(--bold-primary)', fontWeight: 600 }}> {trends.top_predictions[0].title} </span> 
-                                    as their core objective. 
-                                    
-                                    {trends.top_predictions.length >= 3 && (
-                                        <span> Subsequently, progression will navigate towards <span style={{ color: 'var(--bold-secondary)', fontWeight: 600 }}>{trends.top_predictions[1].title}</span> and <span style={{ color: 'var(--bold-secondary)', fontWeight: 600 }}>{trends.top_predictions[2].title}</span>.</span>
-                                    )}
-                                    
-                                    {trends.top_predictions.length === 2 && (
-                                        <span> Subsequently, progression will navigate towards <span style={{ color: 'var(--bold-secondary)', fontWeight: 600 }}>{trends.top_predictions[1].title}</span>.</span>
-                                    )}
-                                </p>
-                            </div>
-                        ) : (
-                            <div style={{ padding: 30, textAlign: 'center', color: '#64748b', fontSize: 13, background: 'rgba(255,255,255,0.02)', borderRadius: 12 }}>
-                                Analyzing telemetry for predictive modeling...
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* 7. Emerging Threats (Wide) */}
-                <div className="card col-span-8">
-                    <div className="card-header">
-                        <div className="card-title"><Crosshair size={16} color="var(--bold-primary)" /> Emerging Threats (Top Techniques)</div>
-                    </div>
-                    {trends?.top_techniques?.length ? (
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 32px' }}>
-                            {trends.top_techniques.slice(0, 6).map(t => (
-                                <div key={t.name} style={{ marginBottom: 12 }}>
-                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 6 }}>
-                                        <span style={{ color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 10, fontWeight: 500 }}>{t.name}</span>
-                                        <span style={{ color: 'var(--bold-warning)', fontFamily: 'JetBrains Mono, monospace', fontWeight: 600 }}>{t.count}</span>
-                                    </div>
-                                    <div className="progress-bar" style={{ background: 'rgba(245, 158, 11, 0.1)', border: 'none' }}>
-                                        <div className="progress-bar-fill" style={{ width: `${(t.count / trends.top_techniques[0].count) * 100}%`, background: 'var(--bold-warning)' }} />
-                                    </div>
-                                </div>
-                            ))}
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', zIndex: 2 }}>
+                        {/* CSS 3D Glass Sphere */}
+                        <div style={{
+                            width: 140,
+                            height: 140,
+                            borderRadius: '50%',
+                            background: 'radial-gradient(circle at 30% 30%, rgba(0, 255, 65, 0.4), rgba(0, 50, 20, 0.8), rgba(0,0,0,0.9))',
+                            boxShadow: '0 0 60px rgba(0, 255, 65, 0.2), inset -10px -10px 30px rgba(0, 0, 0, 0.8), inset 10px 10px 20px rgba(255,255,255,0.1)',
+                            position: 'relative',
+                            marginBottom: 24,
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                        }}>
+                            {/* Inner reflection */}
+                            <div style={{
+                                position: 'absolute',
+                                top: '15%',
+                                left: '20%',
+                                width: '35%',
+                                height: '35%',
+                                background: 'radial-gradient(circle, rgba(255,255,255,0.6), transparent 60%)',
+                                borderRadius: '50%',
+                                transform: 'rotate(-45deg)'
+                            }} />
+                            {/* Inner swirl lines (pseudo-complex) */}
+                            <div style={{
+                                width: '110%',
+                                height: '110%',
+                                borderRadius: '50%',
+                                border: '1px solid rgba(0,255,65,0.3)',
+                                position: 'absolute',
+                                transform: 'rotateX(60deg) rotateY(20deg)',
+                                boxShadow: '0 0 10px rgba(0,255,65,0.2)'
+                            }} />
+                            <div style={{
+                                width: '110%',
+                                height: '110%',
+                                borderRadius: '50%',
+                                border: '1px solid rgba(0,255,65,0.3)',
+                                position: 'absolute',
+                                transform: 'rotateX(60deg) rotateY(-40deg)',
+                                boxShadow: '0 0 10px rgba(0,255,65,0.2)'
+                            }} />
                         </div>
-                    ) : (
-                        <div style={{ padding: 40, textAlign: 'center', color: '#64748b', fontSize: 13 }}>Not enough historical data collected.</div>
-                    )}
+
+                        <div style={{ textAlign: 'center' }}>
+                            <div style={{ color: '#9CA3AF', fontSize: 13, marginBottom: 8 }}>Primary Threat Prediction</div>
+                            <div style={{ fontSize: 16, color: '#fff', fontWeight: 700, padding: '0 20px', lineHeight: 1.4 }}>
+                                {trends?.top_predictions?.length ? trends.top_predictions[0].title : 'System monitoring active. No anomalies detected.'}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Background glowing line */}
+                    <div style={{ position: 'absolute', bottom: 0, left: 0, right: 0, height: 100, background: 'linear-gradient(to top, rgba(0,255,65,0.05), transparent)', zIndex: 1 }} />
                 </div>
 
-                {/* 8. Top Targeted Assets (Narrow) */}
-                <div className="card col-span-4">
-                    <div className="card-header">
-                        <div className="card-title"><Target size={16} color="var(--bold-primary)" /> Most Targeted Assets</div>
-                    </div>
-                    {trends?.top_targets?.length ? (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                            {trends.top_targets.map((t, idx) => (
-                                <div key={t.value} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.04)' }}>
-                                    <div style={{ width: 24, height: 24, borderRadius: 6, background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>
-                                        {idx + 1}
-                                    </div>
-                                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-                                        <span style={{ color: '#f0f4ff', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', fontSize: 13, fontWeight: 600 }}>{t.value}</span>
-                                        <span style={{ color: '#64748b', fontSize: 10, textTransform: 'uppercase' }}>{t.type}</span>
-                                    </div>
-                                    <span style={{ color: '#ef4444', fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', fontSize: 14 }}>{t.count}</span>
-                                </div>
-                            ))}
+                {/* 5. Recent Threats Table (Span 2) */}
+                <div className="card col-span-2" style={{ display: 'flex', flexDirection: 'column', minHeight: 320 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 20 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: '#D1D5DB', fontSize: 13, fontWeight: 600 }}>
+                            <Clock size={15} color="#00ff41" /> Threat History
                         </div>
-                    ) : (
-                        <div style={{ padding: 40, textAlign: 'center', color: '#64748b', fontSize: 13 }}>Not enough historical data.</div>
-                    )}
+                        <a href="/feed" style={{ fontSize: 12, color: '#00ff41', textDecoration: 'none', fontWeight: 600 }}>View all</a>
+                    </div>
+                    
+                    <div style={{ flex: 1, overflowX: 'auto' }}>
+                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left', fontSize: 13 }}>
+                            <thead>
+                                <tr style={{ borderBottom: '1px solid rgba(255,255,255,0.05)', color: '#6B7280' }}>
+                                    <th style={{ padding: '0 12px 12px 0', fontWeight: 500 }}>Target / Indicator</th>
+                                    <th style={{ padding: '0 12px 12px 12px', fontWeight: 500 }}>Tactic</th>
+                                    <th style={{ padding: '0 12px 12px 12px', fontWeight: 500 }}>Severity</th>
+                                    <th style={{ padding: '0 0 12px 12px', fontWeight: 500, textAlign: 'right' }}>Time</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {recentThreats.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={4} style={{ padding: '32px 0', textAlign: 'center', color: '#6B7280' }}>No recent threats recorded.</td>
+                                    </tr>
+                                ) : recentThreats.map(t => (
+                                    <tr key={t.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', transition: 'background 0.2s' }}>
+                                        <td style={{ padding: '16px 12px 16px 0', color: '#fff', fontWeight: 500, maxWidth: 180, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                            {t.title}
+                                        </td>
+                                        <td style={{ padding: '16px 12px' }}>
+                                            <span style={{ 
+                                                background: 'rgba(255,255,255,0.05)', 
+                                                color: '#D1D5DB', 
+                                                padding: '4px 10px', 
+                                                borderRadius: 12, 
+                                                fontSize: 11,
+                                                border: '1px solid rgba(255,255,255,0.05)'
+                                            }}>
+                                                {t.tactic}
+                                            </span>
+                                        </td>
+                                        <td style={{ padding: '16px 12px' }}>
+                                            <span style={{ 
+                                                color: t.severity === 'Critical' ? '#ef4444' : t.severity === 'High' ? '#f97316' : t.severity === 'Medium' ? '#f59e0b' : '#10b981',
+                                                fontSize: 12,
+                                                fontWeight: 600,
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                gap: 6
+                                            }}>
+                                                <div style={{ width: 6, height: 6, borderRadius: '50%', background: 'currentColor', boxShadow: '0 0 8px currentColor' }} />
+                                                {t.severity}
+                                            </span>
+                                        </td>
+                                        <td style={{ padding: '16px 0 16px 12px', textAlign: 'right', color: '#9CA3AF', fontFamily: "'JetBrains Mono', monospace", fontSize: 11 }}>
+                                            {new Date(t.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
 
             </div>

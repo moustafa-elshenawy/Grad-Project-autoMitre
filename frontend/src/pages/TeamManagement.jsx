@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Users, UserPlus, Trash2, Shield, ShieldAlert, Crown, LogOut, Building2, RefreshCw, Copy, ChevronDown, Check, X } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
-const API = 'http://localhost:8000'
+const API = 'http://127.0.0.1:8000'
 
 const roleColors = {
     admin: { bg: 'rgba(14,165,233,0.12)', text: '#0077BC', border: '1px solid rgba(14,165,233,0.25)' },
