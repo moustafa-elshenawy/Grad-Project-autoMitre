@@ -339,4 +339,5 @@ rm backend/automitre.db
 
 This project was developed as part of an academic research thesis on AI-Driven Cyber Threat Intelligence.
 #   a u t o M I T R E 1 . 3  
+ #   G r a d - P r o j e c t - a u t o M i t r e  
  
