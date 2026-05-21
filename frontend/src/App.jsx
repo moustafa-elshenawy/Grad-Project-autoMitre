@@ -75,11 +75,11 @@ function NotificationBell() {
         onClick={() => setOpen(!open)}
         className="btn btn-icon btn-secondary"
         title="Team Invitations"
-        style={{ width: 40, height: 40, position: 'relative' }}
+        style={{ width: 40, height: 40, position: 'relative', borderRadius: 10, background: 'rgba(255,255,255,0.03)', border: 'none', color: '#fff' }}
       >
         <Bell size={18} />
         {count > 0 && (
-          <span style={{ position: 'absolute', top: -4, right: -4, width: 20, height: 20, borderRadius: 4, background: '#DC2626', border: '2px solid #111111', fontFamily: 'JetBrains Mono, monospace', fontSize: 10, fontWeight: 700, color: '#FFFFFF', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
+          <span style={{ position: 'absolute', top: -2, right: -2, width: 16, height: 16, borderRadius: '50%', background: '#84CC16', fontSize: 10, fontWeight: 700, color: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1 }}>
             {count}
           </span>
         )}
@@ -132,32 +132,33 @@ function DataViewSwitcher() {
     <div 
       className="workspace-switcher"
       title={!hasGroup ? 'Join or create a team to unlock Team & Both views' : undefined}
+      style={{ display: 'flex', background: 'rgba(255,255,255,0.03)', padding: 4, borderRadius: 12, gap: 4 }}
     >
-      {/* Private */}
       <button
         className={`workspace-btn ${isPrivate ? 'active-private' : ''}`}
         title="View and save only your private records"
         onClick={() => setViewMode('personal')}
+        style={{ padding: '6px 12px', fontSize: 12, fontWeight: 600, background: isPrivate ? 'rgba(255,255,255,0.1)' : 'transparent', color: isPrivate ? '#fff' : '#9CA3AF', border: 'none', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}
       >
-        <Lock size={11} /> Private
+        <Lock size={12} /> Private
       </button>
 
-      {/* Team */}
       <button
         className={`workspace-btn ${isTeam ? 'active-team' : ''}`}
         title={hasGroup ? `View and save only shared ${groupName || 'Team'} records` : 'Join a team to enable team view'}
         onClick={hasGroup ? () => setViewMode('team') : undefined}
         disabled={!hasGroup}
+        style={{ padding: '6px 12px', fontSize: 12, fontWeight: 600, background: isTeam ? 'rgba(255,255,255,0.1)' : 'transparent', color: isTeam ? '#fff' : '#9CA3AF', border: 'none', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 6, cursor: hasGroup ? 'pointer' : 'not-allowed', opacity: hasGroup ? 1 : 0.5 }}
       >
-        <Users size={11} /> {groupName || 'Team'}
+        <Users size={12} /> {groupName || 'Team'}
       </button>
 
-      {/* Both */}
       <button
         className={`workspace-btn ${isBoth ? 'active-both' : ''}`}
         title={hasGroup ? "View both private and team records (saved records go to Team)" : 'Join a team to enable both view'}
         onClick={hasGroup ? () => setViewMode('both') : undefined}
         disabled={!hasGroup}
+        style={{ padding: '6px 12px', fontSize: 12, fontWeight: 600, background: isBoth ? 'rgba(255,255,255,0.1)' : 'transparent', color: isBoth ? '#fff' : '#9CA3AF', border: 'none', borderRadius: 8, display: 'flex', alignItems: 'center', gap: 6, cursor: hasGroup ? 'pointer' : 'not-allowed', opacity: hasGroup ? 1 : 0.5 }}
       >
         Both
       </button>
@@ -166,25 +167,26 @@ function DataViewSwitcher() {
 }
 
 // ── Topbar ────────────────────────────────────────────────────────────────────
-function Topbar({ title, subtitle }) {
+function Topbar({ title, subtitle, groupLabel }) {
   const { theme, toggleTheme } = useTheme()
 
   return (
     <div className="topbar">
-      <div className="topbar-content">
-        <h1>{title}</h1>
-        <div className="subtitle">{subtitle}</div>
+      <div className="topbar-breadcrumb">
+        <span style={{ color: '#9CA3AF' }}>{groupLabel || 'Main'}</span>
+        <span style={{ color: '#6B7280', margin: '0 8px' }}>/</span>
+        <span style={{ color: '#FFFFFF', fontWeight: 600 }}>{title}</span>
       </div>
-      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '16px' }}>
         <DataViewSwitcher />
         <NotificationBell />
         <button
           onClick={toggleTheme}
           className="btn btn-icon btn-secondary"
           title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`}
-          style={{ borderRadius: '50%', width: '40px', height: '40px' }}
+          style={{ borderRadius: '10px', background: 'rgba(255,255,255,0.03)', border: 'none', color: '#fff', width: 40, height: 40 }}
         >
-          {theme === 'dark' ? <Sun size={20} /> : <Moon size={20} />}
+          {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
         </button>
       </div>
     </div>
@@ -192,30 +194,29 @@ function Topbar({ title, subtitle }) {
 }
 
 const pages = {
-  '/': { title: 'Dashboard', subtitle: 'Threat intelligence overview and real-time monitoring' },
-  '/saved-threats': { title: 'Saved Threats', subtitle: 'Historical archive of processed analyses' },
-  '/analyze': { title: 'Threat Analysis', subtitle: 'Analyze threats with AI-powered MITRE ATT&CK mapping' },
-  '/heatmap': { title: 'Risk Heatmap', subtitle: 'Interactive risk matrix visualization' },
-  '/threat-mapping': { title: 'Mapping, Mitigation and Prediction', subtitle: 'Detailed historical threat intelligence report' },
-  '/chat': { title: 'AI Risk Assessment', subtitle: 'Conversational AI threat analyst' },
-  '/feed': { title: 'Threat Intelligence Feed', subtitle: 'Live cyber threat intelligence' },
-  '/reports': { title: 'Reports & Export', subtitle: 'Generate STIX 2.1, JSON, CSV, and SIEM exports' },
-  '/settings': { title: 'Settings', subtitle: 'Configure APIs, integrations, and preferences' },
-  '/profile': { title: 'User Profile', subtitle: 'Manage your account settings and preferences' },
-  '/team': { title: 'Team Management', subtitle: 'Manage your workspace, invite analysts, and collaborate' },
+  '/': { title: 'Overview', group: 'MAIN' },
+  '/saved-threats': { title: 'Saved Threats', group: 'OTHERS' },
+  '/analyze': { title: 'AI Insights', group: 'MAIN' },
+  '/heatmap': { title: 'Analytics', group: 'MAIN' },
+  '/threat-mapping': { title: 'Mapping, Mitigation and Prediction', group: 'OTHERS' },
+  '/chat': { title: 'AI Assistant', group: 'OTHERS' },
+  '/feed': { title: 'Threat Feed', group: 'OTHERS' },
+  '/reports': { title: 'Reports', group: 'OTHERS' },
+  '/settings': { title: 'Settings', group: 'OTHERS' },
+  '/profile': { title: 'Profile', group: 'OTHERS' },
+  '/team': { title: 'Team Management', group: 'OTHERS' },
 }
 
 function AppLayout({ children }) {
   const path = window.location.pathname
-  const page = pages[path] || (path.startsWith('/threat-mapping/') ? pages['/threat-mapping'] : { title: '404', subtitle: 'Not Found' })
+  const page = pages[path] || (path.startsWith('/threat-mapping/') ? pages['/threat-mapping'] : { title: '404', group: 'Error' })
   const { theme } = useTheme()
 
   return (
-    <div className={`app-layout ${theme}-theme`}>
-      <div className="scan-line" />
+    <div className={`app-layout ${theme}-theme holo-shell`}>
       <Sidebar />
       <div className="main-content">
-        <Topbar title={page.title} subtitle={page.subtitle} />
+        <Topbar title={page.title} groupLabel={page.group} />
         <div className="page-content">
           {children}
         </div>

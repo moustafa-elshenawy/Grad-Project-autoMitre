@@ -3,6 +3,7 @@ import { AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell, ResponsiveContaine
 import { AlertTriangle, Shield, Activity, TrendingUp, Zap, Globe, Lock, Clock, Target, Crosshair, Compass, Layers, List } from 'lucide-react'
 import axios from 'axios'
 import { useDataView } from '../contexts/DataViewContext'
+import { useAuth } from '../contexts/AuthContext'
 
 const API = 'http://localhost:8000'
 
@@ -45,6 +46,7 @@ const CustomTooltip = ({ active, payload, label }) => {
 }
 
 export default function Dashboard() {
+    const { user } = useAuth()
     const [stats, setStats] = useState({
         total_threats: 0, critical_threats: 0, high_threats: 0,
         medium_threats: 0, low_threats: 0, techniques_covered: 0,
@@ -121,103 +123,137 @@ export default function Dashboard() {
 
     return (
         <div>
-            {/* Stat Cards */}
-            <div className="grid-4" style={{ marginBottom: 24 }}>
-                <div className="stat-card critical">
-                    <div className="stat-icon-bg" style={{ background: 'rgba(239,68,68,0.1)' }}>
-                        <AlertTriangle size={18} color="#ef4444" />
-                    </div>
-                    <div className="stat-label">Total Threats</div>
-                    <div className="stat-number">{stats.total_threats.toLocaleString()}</div>
-                    <div className="stat-change" style={{ color: '#ef4444' }}>
-                        <TrendingUp size={11} /> +12% this week
-                    </div>
+            {/* Header Section */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 32 }}>
+                <div>
+                    <h2 style={{ fontSize: 24, fontWeight: 800, color: '#f8fafc', marginBottom: 4 }}>Welcome back, {user?.username || 'Analyst'}!</h2>
+                    <p style={{ color: '#94a3b8', fontSize: 14 }}>Here's what's happening with your security posture today.</p>
                 </div>
-                <div className="stat-card">
-                    <div className="stat-icon-bg" style={{ background: 'rgba(0,212,255,0.1)' }}>
-                        <Zap size={18} color="#0077BC" />
+                <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+                    <div style={{ background: 'rgba(255,255,255,0.03)', border: '1px solid rgba(255,255,255,0.06)', padding: '8px 16px', borderRadius: 10, fontSize: 13, color: '#94a3b8', fontWeight: 500 }}>
+                        <Clock size={14} style={{ display: 'inline', verticalAlign: 'text-bottom', marginRight: 6 }} /> Last 7 Days
                     </div>
-                    <div className="stat-label">Avg Risk Score</div>
-                    <div className="stat-number" style={{ background: 'linear-gradient(135deg,#0077BC,#009866)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-                        {stats.risk_score_avg}
-                    </div>
-                    <div className="stat-change" style={{ color: '#f97316' }}>
-                        <TrendingUp size={11} /> HIGH severity
-                    </div>
-                </div>
-                <div className="stat-card">
-                    <div className="stat-icon-bg" style={{ background: 'rgba(16,185,129,0.1)' }}>
-                        <Shield size={18} color="#10b981" />
-                    </div>
-                    <div className="stat-label">ATT&CK Techniques</div>
-                    <div className="stat-number">{stats.techniques_covered}</div>
-                    <div className="stat-change" style={{ color: '#10b981' }}>
-                        <Activity size={11} /> {stats.techniques_covered} of {stats.total_techniques || stats.total_techniques_framework || 635} mapped
-                    </div>
-                </div>
-                <div className="stat-card">
-                    <div className="stat-icon-bg" style={{ background: 'rgba(124,58,237,0.1)' }}>
-                        <Globe size={18} color="#009866" />
-                    </div>
-                    <div className="stat-label">Frameworks Active</div>
-                    <div className="stat-number">{stats.frameworks_mapped}</div>
-                    <div className="stat-change" style={{ color: '#a78bfa' }}>
-                        <Lock size={11} /> {stats.active_framework_names?.length > 0 ? stats.active_framework_names.join(' · ') : 'No frameworks active'}
-                    </div>
+                    <button className="btn btn-primary" onClick={() => window.location.href = '/analyze'}>
+                        <Activity size={16} /> Run New Analysis
+                    </button>
                 </div>
             </div>
 
-            <div className="grid-2" style={{ marginBottom: 24 }}>
-                {/* Threat Activity Chart */}
-                <div className="card">
+            <div className="bento-grid">
+                {/* 1. Threat Activity (Wide) */}
+                <div className="card col-span-8" style={{ display: 'flex', flexDirection: 'column' }}>
                     <div className="card-header">
-                        <div className="card-title"><Activity size={16} color="#0077BC" /> Threat Activity (7-Day)</div>
+                        <div className="card-title"><Activity size={16} color="var(--bold-primary)" /> Threat Activity (7-Day)</div>
                         <span className="badge badge-info">Live</span>
                     </div>
-                    <ResponsiveContainer width="100%" height={200}>
-                        <AreaChart data={activity}>
-                            <defs>
-                                <linearGradient id="gCrit" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
-                                    <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
-                                </linearGradient>
-                                <linearGradient id="gHigh" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#f97316" stopOpacity={0.3} />
-                                    <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
-                            <XAxis dataKey="day" stroke="#475569" tick={{ fontSize: 11 }} />
-                            <YAxis stroke="#475569" tick={{ fontSize: 11 }} />
-                            <Tooltip content={<CustomTooltip />} />
-                            <Area type="monotone" dataKey="critical" name="Critical" stroke="#ef4444" fill="url(#gCrit)" strokeWidth={2} />
-                            <Area type="monotone" dataKey="high" name="High" stroke="#f97316" fill="url(#gHigh)" strokeWidth={2} />
-                        </AreaChart>
-                    </ResponsiveContainer>
+                    <div style={{ flex: 1, minHeight: 280 }}>
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={activity}>
+                                <defs>
+                                    <linearGradient id="gCrit" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                                    </linearGradient>
+                                    <linearGradient id="gHigh" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#f97316" stopOpacity={0.3} />
+                                        <stop offset="95%" stopColor="#f97316" stopOpacity={0} />
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.04)" />
+                                <XAxis dataKey="day" stroke="#475569" tick={{ fontSize: 11 }} />
+                                <YAxis stroke="#475569" tick={{ fontSize: 11 }} />
+                                <Tooltip content={<CustomTooltip />} />
+                                <Area type="monotone" dataKey="critical" name="Critical" stroke="#ef4444" fill="url(#gCrit)" strokeWidth={2} />
+                                <Area type="monotone" dataKey="high" name="High" stroke="#f97316" fill="url(#gHigh)" strokeWidth={2} />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
                 </div>
 
-                {/* Severity Distribution */}
-                <div className="card">
-                    <div className="card-header">
-                        <div className="card-title"><AlertTriangle size={16} color="#0077BC" /> Severity Distribution</div>
+                {/* 2. Stat Cards (Compact 2x2 grid) */}
+                <div className="col-span-4" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-6)' }}>
+                    <div className="stat-card critical" style={{ padding: '16px' }}>
+                        <div className="stat-label">Total Threats</div>
+                        <div className="stat-number" style={{ fontSize: 32 }}>{stats.total_threats.toLocaleString()}</div>
+                        <div className="stat-change" style={{ color: '#ef4444' }}>
+                            <TrendingUp size={11} /> +12% this week
+                        </div>
                     </div>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 20 }}>
+                    <div className="stat-card" style={{ padding: '16px' }}>
+                        <div className="stat-label">Avg Risk Score</div>
+                        <div className="stat-number" style={{ fontSize: 32, background: 'linear-gradient(135deg, var(--bold-primary), var(--bold-secondary))', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
+                            {stats.risk_score_avg}
+                        </div>
+                        <div className="stat-change" style={{ color: '#f97316' }}>
+                            <TrendingUp size={11} /> HIGH severity
+                        </div>
+                    </div>
+                    <div className="stat-card" style={{ padding: '16px' }}>
+                        <div className="stat-label">Frameworks</div>
+                        <div className="stat-number" style={{ fontSize: 32 }}>{stats.frameworks_mapped}</div>
+                        <div className="stat-change" style={{ color: 'var(--bold-primary)' }}>
+                            <Lock size={11} /> Active
+                        </div>
+                    </div>
+                    <div className="stat-card" style={{ padding: '16px' }}>
+                        <div className="stat-label">ATT&CK Map</div>
+                        <div className="stat-number" style={{ fontSize: 32 }}>{stats.techniques_covered}</div>
+                        <div className="stat-change" style={{ color: '#10b981' }}>
+                            <Shield size={11} /> Techniques
+                        </div>
+                    </div>
+                </div>
+
+                {/* 3. Recent Threats Table (Wide) */}
+                <div className="card col-span-8">
+                    <div className="card-header">
+                        <div className="card-title"><Clock size={16} color="var(--bold-primary)" /> Recent Threats</div>
+                        <a href="/feed" style={{ fontSize: 11, color: 'var(--bold-primary)', textDecoration: 'none' }}>View all →</a>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                        {recentThreats.length === 0 ? (
+                            <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: 13, background: 'rgba(255,255,255,0.02)', borderRadius: 6 }}>
+                                No recent threats. Analysis feed is clear.
+                            </div>
+                        ) : recentThreats.map(t => (
+                            <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: 'rgba(255,255,255,0.02)', borderRadius: 10 }}>
+                                <div style={{ width: 8, height: 8, borderRadius: '50%', background: t.severity === 'Critical' ? '#ef4444' : '#f97316', flexShrink: 0 }} />
+                                <div style={{ flex: 1, minWidth: 0 }}>
+                                    <div style={{ fontSize: 13, fontWeight: 600, color: '#f0f4ff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.title}</div>
+                                    <div style={{ fontSize: 11, color: '#94a3b8', marginTop: 2 }}>{t.tactic}</div>
+                                </div>
+                                <span className="badge badge-attack" style={{ fontFamily: 'JetBrains Mono,monospace', fontSize: 10, flexShrink: 0 }}>{t.technique}</span>
+                                <span className={`badge badge-${sevClass(t.severity)}`} style={{ flexShrink: 0 }}>{t.severity}</span>
+                                <span style={{ fontSize: 11, color: '#64748b', flexShrink: 0, width: 60, textAlign: 'right' }}>{new Date(t.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+
+                {/* 4. Severity Distribution (Narrow) */}
+                <div className="card col-span-4" style={{ display: 'flex', flexDirection: 'column' }}>
+                    <div className="card-header">
+                        <div className="card-title"><AlertTriangle size={16} color="var(--bold-primary)" /> Severity Distribution</div>
+                    </div>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                         {severityDist.length === 0 ? (
-                            <div style={{ width: '100%', padding: '40px 0', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
+                            <div style={{ textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>
                                 No threats analyzed yet. Get started in Threat Analysis.
                             </div>
                         ) : (
                             <>
-                                <ResponsiveContainer width={140} height={140}>
-                                    <PieChart>
-                                        <Pie data={severityDist} cx="50%" cy="50%" innerRadius={40} outerRadius={65} dataKey="value" strokeWidth={0}>
-                                            {severityDist.map((e, i) => <Cell key={i} fill={e.color} />)}
-                                        </Pie>
-                                    </PieChart>
-                                </ResponsiveContainer>
-                                <div style={{ flex: 1 }}>
+                                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 20 }}>
+                                    <ResponsiveContainer width={160} height={160}>
+                                        <PieChart>
+                                            <Pie data={severityDist} cx="50%" cy="50%" innerRadius={50} outerRadius={75} dataKey="value" strokeWidth={0}>
+                                                {severityDist.map((e, i) => <Cell key={i} fill={e.color} />)}
+                                            </Pie>
+                                        </PieChart>
+                                    </ResponsiveContainer>
+                                </div>
+                                <div>
                                     {severityDist.map(s => (
-                                        <div key={s.name} style={{ marginBottom: 10 }}>
+                                        <div key={s.name} style={{ marginBottom: 12 }}>
                                             <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 4 }}>
                                                 <span style={{ color: s.color, fontWeight: 600 }}>{s.name}</span>
                                                 <span style={{ color: '#94a3b8', fontFamily: 'JetBrains Mono, monospace' }}>{s.value}</span>
@@ -232,133 +268,111 @@ export default function Dashboard() {
                         )}
                     </div>
                 </div>
-            </div>
 
-            <div className="grid-2">
-                {/* Recent Threats */}
-                <div className="card">
+                {/* 5. Tactic Coverage (Narrow) */}
+                <div className="card col-span-4">
                     <div className="card-header">
-                        <div className="card-title"><Clock size={16} color="#0077BC" /> Recent Threats</div>
-                        <a href="/feed" style={{ fontSize: 11, color: 'var(--accent-blue)', textDecoration: 'none' }}>View all →</a>
+                        <div className="card-title"><Shield size={16} color="var(--bold-primary)" /> ATT&CK Coverage</div>
                     </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                        {recentThreats.length === 0 ? (
-                            <div style={{ padding: '20px', textAlign: 'center', color: '#94a3b8', fontSize: 13, background: 'rgba(255,255,255,0.02)', borderRadius: 6 }}>
-                                No recent threats. Analysis feed is clear.
-                            </div>
-                        ) : recentThreats.map(t => (
-                            <div key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '8px 10px', background: 'rgba(255,255,255,0.02)', borderRadius: 6 }}>
-                                <div style={{ width: 6, height: 6, borderRadius: '50%', background: t.severity === 'Critical' ? '#ef4444' : '#f97316', flexShrink: 0 }} />
-                                <div style={{ flex: 1, minWidth: 0 }}>
-                                    <div style={{ fontSize: 12.5, fontWeight: 600, color: '#f0f4ff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{t.title}</div>
-                                    <div style={{ fontSize: 11, color: '#94a3b8' }}>{t.tactic}</div>
-                                </div>
-                                <span className={`badge badge-attack`} style={{ fontFamily: 'JetBrains Mono,monospace', fontSize: 10, flexShrink: 0 }}>{t.technique}</span>
-                                <span className={`badge badge-${sevClass(t.severity)}`} style={{ flexShrink: 0 }}>{t.severity}</span>
-                                <span style={{ fontSize: 10, color: '#475569', flexShrink: 0 }}>{new Date(t.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-                {/* ATT&CK Tactic Coverage */}
-                <div className="card">
-                    <div className="card-header">
-                        <div className="card-title"><Shield size={16} color="#0077BC" /> ATT&CK Tactic Coverage</div>
-                    </div>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                        {tacticCoverage.map(t => (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                        {tacticCoverage.slice(0, 10).map(t => (
                             <div key={t.name} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11 }}>
-                                <span style={{ width: 110, color: '#94a3b8', flexShrink: 0 }}>{t.name}</span>
-                                <div className="progress-bar" style={{ flex: 1 }}>
+                                <span style={{ width: 110, color: '#94a3b8', flexShrink: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</span>
+                                <div className="progress-bar" style={{ flex: 1, height: 8 }}>
                                     <div className="progress-bar-fill" style={{ width: `${(t.covered / t.total) * 100}%`, background: t.color }} />
                                 </div>
-                                <span style={{ width: 40, textAlign: 'right', color: '#475569', fontFamily: 'JetBrains Mono, monospace' }}>{t.covered}/{t.total}</span>
+                                <span style={{ width: 35, textAlign: 'right', color: '#64748b', fontFamily: 'JetBrains Mono, monospace' }}>{t.covered}/{t.total}</span>
                             </div>
                         ))}
                     </div>
                 </div>
-            </div>
 
-            {/* Historical Trend Analysis (FR7.1 / FR7.3) */}
-            <div style={{ marginTop: 24, marginBottom: 40 }}>
-                <h3 style={{ fontSize: 14, color: '#f0f4ff', display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-                    <Layers size={16} color="#0077BC" />
-                    Historical Pattern Analysis (30-Day Trends)
-                </h3>
-                <div className="grid-3">
-                    {/* Top Targeted Assets */}
-                    <div className="card">
-                        <div className="card-header">
-                            <div className="card-title"><Target size={15} color="#ef4444" /> Most Targeted Assets</div>
-                        </div>
-                        {trends?.top_targets?.length ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                                {trends.top_targets.map(t => (
-                                    <div key={t.value} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, padding: '6px 0', borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                        <div style={{ display: 'flex', gap: 6, alignItems: 'center', overflow: 'hidden' }}>
-                                            <span style={{ color: '#94a3b8', fontSize: 10, textTransform: 'uppercase', flexShrink: 0 }}>[{t.type}]</span>
-                                            <span style={{ color: '#f0f4ff', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden' }}>{t.value}</span>
-                                        </div>
-                                        <span style={{ color: '#ef4444', fontWeight: 600, fontFamily: 'JetBrains Mono, monospace' }}>{t.count}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div style={{ padding: 20, textAlign: 'center', color: '#64748b', fontSize: 12 }}>Not enough historical data.</div>
-                        )}
+                {/* 6. AI Predictions (Narrow) */}
+                <div className="card col-span-4">
+                    <div className="card-header">
+                        <div className="card-title"><Compass size={16} color="var(--bold-primary)" /> AI Insights</div>
+                        <span className="badge badge-info">AutoMITRE</span>
                     </div>
-
-                    {/* Emerging Techniques */}
-                    <div className="card">
-                        <div className="card-header">
-                            <div className="card-title"><Crosshair size={15} color="#f97316" /> Emerging Threats (Top Techniques)</div>
-                        </div>
-                        {trends?.top_techniques?.length ? (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-                                {trends.top_techniques.map(t => (
-                                    <div key={t.name}>
-                                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 4 }}>
-                                            <span style={{ color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 10 }}>{t.name}</span>
-                                            <span style={{ color: '#f97316', fontFamily: 'JetBrains Mono, monospace' }}>{t.count}</span>
-                                        </div>
-                                        <div className="progress-bar">
-                                            <div className="progress-bar-fill" style={{ width: `${(t.count / trends.top_techniques[0].count) * 100}%`, background: '#f97316' }} />
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <div style={{ padding: 20, textAlign: 'center', color: '#64748b', fontSize: 12 }}>Not enough historical data.</div>
-                        )}
-                    </div>
-
-                    {/* Common Predicted Steps (FR7.3) */}
-                    <div className="card">
-                        <div className="card-header">
-                            <div className="card-title"><Compass size={15} color="#10b981" /> Aggregate Prediction Patterns</div>
-                        </div>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                         {trends?.top_predictions?.length ? (
-                            <div style={{ background: 'rgba(16,185,129,0.05)', border: '1px solid rgba(16,185,129,0.1)', padding: 16, borderRadius: 8 }}>
-                                <p style={{ color: '#f0f4ff', fontSize: 13, lineHeight: '1.6', margin: 0 }}>
-                                    Based on the collective patterns observed in the current active footprint, the attacker will most likely prioritize 
-                                    <span style={{ color: '#10b981', fontWeight: 600 }}> {trends.top_predictions[0].title} </span> 
-                                    as their core tactical objective. 
+                            <div style={{ background: 'linear-gradient(135deg, rgba(132, 204, 22, 0.05), rgba(20, 184, 166, 0.05))', border: '1px solid rgba(132, 204, 22, 0.1)', padding: 20, borderRadius: 12 }}>
+                                <div style={{ marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(132, 204, 22, 0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <Zap size={16} color="var(--bold-primary)" />
+                                    </div>
+                                    <div style={{ fontSize: 13, fontWeight: 700, color: '#fff' }}>Threat Trajectory</div>
+                                </div>
+                                <p style={{ color: '#94a3b8', fontSize: 13, lineHeight: '1.6', margin: 0 }}>
+                                    Based on active footprints, attackers will most likely prioritize 
+                                    <span style={{ color: 'var(--bold-primary)', fontWeight: 600 }}> {trends.top_predictions[0].title} </span> 
+                                    as their core objective. 
                                     
                                     {trends.top_predictions.length >= 3 && (
-                                        <span> Subsequently, it is highly probable the progression will navigate towards <span style={{ color: '#10b981', fontWeight: 600 }}>{trends.top_predictions[1].title}</span> and <span style={{ color: '#10b981', fontWeight: 600 }}>{trends.top_predictions[2].title}</span> to achieve full exploitation.</span>
+                                        <span> Subsequently, progression will navigate towards <span style={{ color: 'var(--bold-secondary)', fontWeight: 600 }}>{trends.top_predictions[1].title}</span> and <span style={{ color: 'var(--bold-secondary)', fontWeight: 600 }}>{trends.top_predictions[2].title}</span>.</span>
                                     )}
                                     
                                     {trends.top_predictions.length === 2 && (
-                                        <span> Subsequently, it is highly probable the progression will navigate towards <span style={{ color: '#10b981', fontWeight: 600 }}>{trends.top_predictions[1].title}</span> to achieve full exploitation.</span>
+                                        <span> Subsequently, progression will navigate towards <span style={{ color: 'var(--bold-secondary)', fontWeight: 600 }}>{trends.top_predictions[1].title}</span>.</span>
                                     )}
                                 </p>
                             </div>
                         ) : (
-                            <div style={{ padding: 20, textAlign: 'center', color: '#64748b', fontSize: 12 }}>No predictions stored yet.</div>
+                            <div style={{ padding: 30, textAlign: 'center', color: '#64748b', fontSize: 13, background: 'rgba(255,255,255,0.02)', borderRadius: 12 }}>
+                                Analyzing telemetry for predictive modeling...
+                            </div>
                         )}
                     </div>
                 </div>
+
+                {/* 7. Emerging Threats (Wide) */}
+                <div className="card col-span-8">
+                    <div className="card-header">
+                        <div className="card-title"><Crosshair size={16} color="var(--bold-primary)" /> Emerging Threats (Top Techniques)</div>
+                    </div>
+                    {trends?.top_techniques?.length ? (
+                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 32px' }}>
+                            {trends.top_techniques.slice(0, 6).map(t => (
+                                <div key={t.name} style={{ marginBottom: 12 }}>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, marginBottom: 6 }}>
+                                        <span style={{ color: '#e2e8f0', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 10, fontWeight: 500 }}>{t.name}</span>
+                                        <span style={{ color: 'var(--bold-warning)', fontFamily: 'JetBrains Mono, monospace', fontWeight: 600 }}>{t.count}</span>
+                                    </div>
+                                    <div className="progress-bar" style={{ background: 'rgba(245, 158, 11, 0.1)', border: 'none' }}>
+                                        <div className="progress-bar-fill" style={{ width: `${(t.count / trends.top_techniques[0].count) * 100}%`, background: 'var(--bold-warning)' }} />
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div style={{ padding: 40, textAlign: 'center', color: '#64748b', fontSize: 13 }}>Not enough historical data collected.</div>
+                    )}
+                </div>
+
+                {/* 8. Top Targeted Assets (Narrow) */}
+                <div className="card col-span-4">
+                    <div className="card-header">
+                        <div className="card-title"><Target size={16} color="var(--bold-primary)" /> Most Targeted Assets</div>
+                    </div>
+                    {trends?.top_targets?.length ? (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                            {trends.top_targets.map((t, idx) => (
+                                <div key={t.value} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: 'rgba(255,255,255,0.02)', borderRadius: 10, border: '1px solid rgba(255,255,255,0.04)' }}>
+                                    <div style={{ width: 24, height: 24, borderRadius: 6, background: 'rgba(239, 68, 68, 0.1)', color: '#ef4444', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>
+                                        {idx + 1}
+                                    </div>
+                                    <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+                                        <span style={{ color: '#f0f4ff', whiteSpace: 'nowrap', textOverflow: 'ellipsis', overflow: 'hidden', fontSize: 13, fontWeight: 600 }}>{t.value}</span>
+                                        <span style={{ color: '#64748b', fontSize: 10, textTransform: 'uppercase' }}>{t.type}</span>
+                                    </div>
+                                    <span style={{ color: '#ef4444', fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', fontSize: 14 }}>{t.count}</span>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <div style={{ padding: 40, textAlign: 'center', color: '#64748b', fontSize: 13 }}>Not enough historical data.</div>
+                    )}
+                </div>
+
             </div>
         </div>
     )
