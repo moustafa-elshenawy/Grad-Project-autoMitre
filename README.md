@@ -338,3 +338,5 @@ rm backend/automitre.db
 ## License
 
 This project was developed as part of an academic research thesis on AI-Driven Cyber Threat Intelligence.
+#   a u t o M I T R E 1 . 3  
+ 
