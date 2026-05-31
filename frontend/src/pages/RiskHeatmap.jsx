@@ -67,9 +67,9 @@ export default function RiskHeatmap() {
     }
 
     const getTopTechniques = () => {
-        const allThreats = Object.values(threats).flat()
+        const allThreatsVal = Object.values(threats).flat()
         const counts = {}
-        allThreats.forEach(t => {
+        allThreatsVal.forEach(t => {
             if (t.attack_techniques && Array.isArray(t.attack_techniques)) {
                 t.attack_techniques.forEach(tech => {
                     const key = tech.id
@@ -86,6 +86,26 @@ export default function RiskHeatmap() {
     }
 
     const topTechs = getTopTechniques()
+
+    const allThreats = Object.values(threats).flat()
+
+    const getSeverityDistribution = () => {
+        const counts = { Critical: 0, High: 0, Medium: 0, Low: 0 }
+        allThreats.forEach(t => {
+            const sev = t.risk_score?.severity || t.severity
+            if (sev && counts[sev] !== undefined) {
+                counts[sev] += 1
+            }
+        })
+        return counts
+    }
+
+    const sevCounts = getSeverityDistribution()
+    const totalThreatsCount = allThreats.length
+    const avgRiskScore = totalThreatsCount > 0 
+        ? (allThreats.reduce((sum, t) => sum + (t.risk_score?.score || 0), 0) / totalThreatsCount).toFixed(1)
+        : '0.0'
+
 
 
     return (
@@ -229,6 +249,58 @@ export default function RiskHeatmap() {
                             )}
                         </div>
                     )}
+                </div>
+
+                {/* Center Gap: Threat Severity Distribution */}
+                <div style={{ flex: 1, minWidth: 260, maxWidth: 360, display: 'flex', flexDirection: 'column', height: 532 }}>
+                    <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1 }}>
+                            Severity Distribution
+                        </div>
+                        
+                        {totalThreatsCount === 0 ? (
+                            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', color: 'rgba(255,255,255,0.3)', gap: 8, padding: 24, textAlign: 'center' }}>
+                                <span style={{ fontSize: 13, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600 }}>No Threat Data Available</span>
+                                <span style={{ fontSize: 11 }}>Analyze threat inputs to populate the severity chart.</span>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 20, flex: 1, justifyContent: 'center' }}>
+                                {[
+                                    { label: 'Critical', color: '#ef4444', count: sevCounts.Critical },
+                                    { label: 'High', color: '#f97316', count: sevCounts.High },
+                                    { label: 'Medium', color: '#f59e0b', count: sevCounts.Medium },
+                                    { label: 'Low', color: '#10b981', count: sevCounts.Low }
+                                ].map(sev => {
+                                    const percent = totalThreatsCount > 0 ? (sev.count / totalThreatsCount) * 100 : 0
+                                    return (
+                                        <div key={sev.label} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 12 }}>
+                                                <span style={{ fontWeight: 700, color: '#fff', fontSize: 13 }}>{sev.label}</span>
+                                                <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                                                    <span style={{ color: sev.color, fontWeight: 800, fontFamily: 'JetBrains Mono, monospace' }}>{sev.count}</span>
+                                                    <span style={{ color: '#64748b', fontSize: 10 }}>({percent.toFixed(0)}%)</span>
+                                                </div>
+                                            </div>
+                                            <div style={{ height: 8, background: 'rgba(255,255,255,0.03)', borderRadius: 4, overflow: 'hidden', border: '1px solid rgba(255,255,255,0.05)' }}>
+                                                <div style={{ height: '100%', width: `${percent}%`, background: sev.color, borderRadius: 4, boxShadow: `0 0 10px ${sev.color}80`, transition: 'width 0.4s ease' }} />
+                                            </div>
+                                        </div>
+                                    )
+                                })}
+
+                                <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 16, marginTop: 8, display: 'flex', justifyContent: 'space-between', gap: 12 }}>
+                                    <div style={{ flex: 1, background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: 8, padding: '10px 12px', textAlign: 'center' }}>
+                                        <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase', fontWeight: 700, letterSpacing: 0.5, marginBottom: 2 }}>Total Mapped</div>
+                                        <span style={{ fontSize: 18, fontWeight: 800, color: '#fff', fontFamily: 'JetBrains Mono, monospace' }}>{totalThreatsCount}</span>
+                                    </div>
+                                    <div style={{ flex: 1, background: 'rgba(255,255,255,0.01)', border: '1px solid rgba(255,255,255,0.04)', borderRadius: 8, padding: '10px 12px', textAlign: 'center' }}>
+                                        <div style={{ fontSize: 9, color: '#64748b', textTransform: 'uppercase', fontWeight: 700, letterSpacing: 0.5, marginBottom: 2 }}>Avg Risk Score</div>
+                                        <span style={{ fontSize: 18, fontWeight: 800, color: '#38bdf8', fontFamily: 'JetBrains Mono, monospace' }}>{avgRiskScore}</span>
+                                    </div>
+                                </div>
+                            </div>
+                        )}
+                    </div>
                 </div>
 
                 {/* Top MITRE Techniques */}
