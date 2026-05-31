@@ -77,7 +77,7 @@ export function VirusTotalPanel({ vt }) {
                         </div>
                     )}
 
-                    {vt.signer && <div style={{ fontSize: 12, color: '#0077BC', marginTop: 4 }}>✍️ {vt.signer}</div>}
+                    {vt.signer && <div style={{ fontSize: 12, color: '#0077BC', marginTop: 4 }}>Signer: {vt.signer}</div>}
 
                     {vt.hashes?.sha256 && (
                         <div style={{ marginTop: 8 }}>
@@ -116,12 +116,12 @@ export function VirusTotalPanel({ vt }) {
                     <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
                         {(vt.sandbox_hits || []).map((sb, i) => (
                             <span key={`sb-${i}`} style={{ fontSize: 10, padding: '2px 6px', background: 'rgba(239,68,68,0.1)', color: '#ef4444', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 4 }}>
-                                🦠 {sb}
+                                {sb}
                             </span>
                         ))}
                         {(vt.yara_hits || []).map((yara, i) => (
                             <span key={`yara-${i}`} style={{ fontSize: 10, padding: '2px 6px', background: 'rgba(245,158,11,0.1)', color: '#f59e0b', border: '1px solid rgba(245,158,11,0.2)', borderRadius: 4 }}>
-                                🎯 YARA: {yara}
+                                YARA: {yara}
                             </span>
                         ))}
                         {(vt.tags || []).map((t, i) => (
@@ -494,10 +494,6 @@ export default function ThreatAnalysis() {
 
     return (
         <div>
-            <div className="page-header" style={{ marginBottom: 16 }}>
-                <h1>Threat Analysis</h1>
-                <p>Submit text, file, or hash for AI-powered threat detection and framework mapping</p>
-            </div>
 
             <div className="card">
                 <div className="tabs" style={{ marginBottom: 20 }}>

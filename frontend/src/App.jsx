@@ -43,7 +43,7 @@ function NotificationBell() {
         const data = await res.json()
         setInvitations(data.invitations || [])
       }
-    } catch (e) {}
+    } catch (e) { }
   }
 
   useEffect(() => {
@@ -125,13 +125,13 @@ function NotificationBell() {
 // ── Workspace Switcher ────────────────────────────────────────────────────────
 function DataViewSwitcher() {
   const { viewMode, setViewMode, hasGroup, groupName } = useDataView()
-  
+
   const isPrivate = viewMode === 'personal' || !hasGroup
   const isTeam = viewMode === 'team'
   const isBoth = viewMode === 'both'
 
   return (
-    <div 
+    <div
       className="workspace-switcher"
       title={!hasGroup ? 'Join or create a team to unlock Team & Both views' : undefined}
     >
@@ -181,6 +181,8 @@ const pages = {
   '/settings': { title: 'Settings', subtitle: 'Configure APIs, integrations, and preferences' },
   '/profile': { title: 'User Profile', subtitle: 'Manage your account settings and preferences' },
   '/team': { title: 'Team Management', subtitle: 'Manage your workspace, invite analysts, and collaborate' },
+  '/coverage': { title: 'Framework Coverage', subtitle: 'MITRE ATT&CK, D3FEND, NIST 800-53, and OWASP mapping statistics' },
+  '/audit': { title: 'Audit Log', subtitle: 'History of workspace activities and user actions' },
 }
 
 function AppLayout({ children }) {
@@ -194,7 +196,7 @@ function AppLayout({ children }) {
       <div className="main-content">
         <TopNav rightElements={<><DataViewSwitcher /><NotificationBell /></>} />
         <div className="page-content">
-          <div style={{ marginBottom: 24 }}>
+          <div style={{ marginBottom: 24, textAlign: 'center' }}>
             <h1 style={{ fontFamily: 'Archivo Black, sans-serif', fontSize: 24, fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.02em', color: '#fff' }}>{page.title}</h1>
             <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, fontWeight: 500, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase' }}>{page.subtitle}</div>
           </div>

@@ -9,16 +9,43 @@ const SEV_COLOR = { Critical: '#ef4444', High: '#f97316', Medium: '#f59e0b', Low
 const SEV_CLASS = { Critical: 'critical', High: 'high', Medium: 'medium', Low: 'low' }
 
 const SOURCE_META = {
-    misp: { label: 'MISP', color: '#f59e0b', icon: '🧩' },
-    urlhaus: { label: 'URLhaus', color: '#10b981', icon: '🔗' },
-    bazaar: { label: 'MalwareBazaar', color: '#3b82f6', icon: '🦠' },
-    otx: { label: 'AlienVault OTX', color: '#a855f7', icon: '🛰' },
-    db: { label: 'autoMITRE', color: '#0077BC', icon: '🎯' },
+    misp: { label: 'MISP', color: '#f59e0b', icon: '•' },
+    urlhaus: { label: 'URLhaus', color: '#10b981', icon: '•' },
+    bazaar: { label: 'MalwareBazaar', color: '#3b82f6', icon: '•' },
+    otx: { label: 'AlienVault OTX', color: '#a855f7', icon: '•' },
+    db: { label: 'AutoMITRE', color: '#00ff41', icon: '•' },
 }
 
 function authHeader() {
     const t = localStorage.getItem('token')
     return t ? { Authorization: `Bearer ${t}` } : {}
+}
+
+function getFrameworkBadgeStyle(f) {
+    const fUpper = f.toUpperCase()
+    if (fUpper.includes('ATTACK') || fUpper.includes('ATT&CK')) {
+        return { background: 'rgba(249, 115, 22, 0.1)', color: '#f97316', border: '1px solid rgba(249, 115, 22, 0.25)' }
+    }
+    if (fUpper.includes('DEFEND')) {
+        return { background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', border: '1px solid rgba(59, 130, 246, 0.25)' }
+    }
+    if (fUpper.includes('NIST')) {
+        return { background: 'rgba(34, 197, 94, 0.1)', color: '#22c55e', border: '1px solid rgba(34, 197, 94, 0.25)' }
+    }
+    if (fUpper.includes('OWASP')) {
+        return { background: 'rgba(234, 179, 8, 0.1)', color: '#eab308', border: '1px solid rgba(234, 179, 8, 0.25)' }
+    }
+    return { background: 'rgba(255, 255, 255, 0.05)', color: 'var(--text-secondary)', border: '1px solid rgba(255, 255, 255, 0.1)' }
+}
+
+function formatFeedTime(ts) {
+    if (!ts) return ''
+    try {
+        const date = new Date(ts)
+        return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' · ' + date.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
+    } catch {
+        return ts
+    }
 }
 
 // ── Source Status Badge ───────────────────────────────────────────────────────
@@ -28,7 +55,6 @@ function SourceBadge({ sourceKey, status, configured }) {
     const err = status === 'error'
     const notConfigured = configured === false
 
-    let dot = '●'
     let dotColor = active ? '#10b981' : err ? '#ef4444' : notConfigured ? '#475569' : '#f59e0b'
     let opacity = notConfigured ? 0.5 : 1
 
@@ -43,21 +69,19 @@ function SourceBadge({ sourceKey, status, configured }) {
                 cursor: 'default',
             }}
         >
-            <span style={{ color: dotColor, fontSize: 9 }}>⬤</span>
-            {meta.icon} {meta.label}
+            <span style={{ color: dotColor, fontSize: 8, display: 'inline-block', lineHeight: 1 }}>⬤</span>
+            {meta.label}
         </div>
     )
 }
 
 // ── MISP Config Panel ─────────────────────────────────────────────────────────
 function MispConfigPanel({ onSaved }) {
-    const [open, setOpen] = useState(false)
     const [form, setForm] = useState({ misp_url: '', misp_api_key: '', otx_api_key: '' })
     const [saving, setSaving] = useState(false)
     const [message, setMessage] = useState(null)
 
     useEffect(() => {
-        if (!open) return
         axios.get(`${API}/api/settings/osint`, { headers: authHeader() })
             .then(r => setForm({
                 misp_url: r.data.misp_url || '',
@@ -65,7 +89,7 @@ function MispConfigPanel({ onSaved }) {
                 otx_api_key: r.data.otx_api_key || '',
             }))
             .catch(() => { })
-    }, [open])
+    }, [])
 
     const save = async () => {
         setSaving(true)
@@ -82,68 +106,62 @@ function MispConfigPanel({ onSaved }) {
     }
 
     return (
-        <div style={{ background: 'var(--bg-card)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 12, overflow: 'hidden', marginBottom: 20 }}>
-            <button
-                onClick={() => setOpen(o => !o)}
-                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '12px 16px', background: 'none', border: 'none', cursor: 'pointer', color: 'var(--text-primary)', fontSize: 13, fontWeight: 600 }}
-            >
-                <Settings2 size={15} color="#0077BC" />
-                OSINT Source Configuration
-                <span style={{ marginLeft: 'auto', color: 'var(--text-muted)' }}>{open ? <ChevronUp size={14} /> : <ChevronDown size={14} />}</span>
-            </button>
+        <div className="card" style={{ display: 'flex', flexDirection: 'column', gap: 16, padding: 20, boxSizing: 'border-box', flex: 1, minHeight: 280 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--text-secondary)' }}>
+                <Settings2 size={16} color="var(--bold-primary)" />
+                <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', textTransform: 'uppercase', letterSpacing: '0.06em' }}>OSINT Source Configuration</h3>
+            </div>
 
-            {open && (
-                <div style={{ padding: '0 16px 16px', borderTop: '1px solid rgba(255,255,255,0.06)' }}>
-                    <p style={{ fontSize: 12, color: 'var(--text-muted)', margin: '12px 0' }}>
-                        Free feeds (URLhaus, MalwareBazaar) are always active. Configure optional sources below.
-                    </p>
+            <p style={{ fontSize: 11, color: 'var(--text-muted)', margin: 0, lineHeight: 1.4 }}>
+                Free feeds (URLhaus, MalwareBazaar) are active. Configure optional sources below to enrich threat profiles.
+            </p>
 
-                    <div style={{ display: 'grid', gap: 12 }}>
-                        <div>
-                            <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>MISP URL</label>
-                            <input
-                                className="form-input" style={{ fontSize: 13 }}
-                                value={form.misp_url}
-                                onChange={e => setForm(f => ({ ...f, misp_url: e.target.value }))}
-                                placeholder="https://your-misp-instance.com"
-                            />
-                        </div>
-                        <div>
-                            <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>MISP API Key</label>
-                            <input
-                                className="form-input" style={{ fontSize: 13 }}
-                                type="password"
-                                value={form.misp_api_key}
-                                onChange={e => setForm(f => ({ ...f, misp_api_key: e.target.value }))}
-                                placeholder="Your MISP automation API key"
-                            />
-                        </div>
-                        <div>
-                            <label style={{ fontSize: 11, color: 'var(--text-muted)', display: 'block', marginBottom: 4 }}>AlienVault OTX API Key <span style={{ color: '#475569' }}>(free at otx.alienvault.com)</span></label>
-                            <input
-                                className="form-input" style={{ fontSize: 13 }}
-                                type="password"
-                                value={form.otx_api_key}
-                                onChange={e => setForm(f => ({ ...f, otx_api_key: e.target.value }))}
-                                placeholder="Your OTX API key"
-                            />
-                        </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, flex: 1, justifyContent: 'center' }}>
+                <div>
+                    <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>MISP URL</label>
+                    <input
+                        className="form-input" style={{ fontSize: 12, padding: '8px 12px', width: '100%', boxSizing: 'border-box' }}
+                        value={form.misp_url}
+                        onChange={e => setForm(f => ({ ...f, misp_url: e.target.value }))}
+                        placeholder="https://your-misp-instance.com"
+                    />
+                </div>
+                <div style={{ display: 'flex', gap: 10 }}>
+                    <div style={{ flex: 1 }}>
+                        <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>MISP API Key</label>
+                        <input
+                            className="form-input" style={{ fontSize: 12, padding: '8px 12px', width: '100%', boxSizing: 'border-box' }}
+                            type="password"
+                            value={form.misp_api_key}
+                            onChange={e => setForm(f => ({ ...f, misp_api_key: e.target.value }))}
+                            placeholder="API Key"
+                        />
                     </div>
+                    <div style={{ flex: 1 }}>
+                        <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', display: 'block', marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.04em' }}>OTX API Key</label>
+                        <input
+                            className="form-input" style={{ fontSize: 12, padding: '8px 12px', width: '100%', boxSizing: 'border-box' }}
+                            type="password"
+                            value={form.otx_api_key}
+                            onChange={e => setForm(f => ({ ...f, otx_api_key: e.target.value }))}
+                            placeholder="OTX Key"
+                        />
+                    </div>
+                </div>
+            </div>
 
-                    {message && (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 12, fontSize: 12, color: message.ok ? '#10b981' : '#ef4444' }}>
-                            {message.ok ? <CheckCircle size={13} /> : <XCircle size={13} />} {message.text}
-                        </div>
-                    )}
-
-                    <button
-                        className="btn btn-primary" style={{ marginTop: 14, fontSize: 12 }}
-                        onClick={save} disabled={saving}
-                    >
-                        {saving ? 'Saving...' : 'Save Configuration'}
-                    </button>
+            {message && (
+                <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 11, color: message.ok ? '#10b981' : '#ef4444', marginTop: 4 }}>
+                    {message.ok ? <CheckCircle size={12} /> : <XCircle size={12} />} {message.text}
                 </div>
             )}
+
+            <button
+                className="btn btn-primary" style={{ fontSize: 12, padding: '10px 16px', width: '100%', marginTop: 4, justifyContent: 'center' }}
+                onClick={save} disabled={saving}
+            >
+                {saving ? 'Saving...' : 'Save Configuration'}
+            </button>
         </div>
     )
 }
@@ -196,67 +214,115 @@ export default function ThreatFeed() {
 
     return (
         <div>
-            {/* Header */}
-            <div className="page-header" style={{ marginBottom: 20 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                    <Wifi size={20} color="#0077BC" />
-                    <div>
-                        <h1 style={{ margin: 0 }}>Live Threat Feed</h1>
-                        <p style={{ margin: 0, fontSize: 12 }}>
-                            Real-time OSINT from URLhaus, MalwareBazaar, OTX &amp; MISP
-                            {lastUpdated && <span style={{ color: '#475569' }}> · Updated {new Date(lastUpdated).toLocaleTimeString()}</span>}
-                        </p>
-                    </div>
+            {/* Header Action Bar */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24, flexWrap: 'wrap', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ display: 'inline-flex', width: 8, height: 8, borderRadius: '50%', background: '#00ff41', boxShadow: '0 0 8px #00ff41' }}></span>
+                    <span style={{ fontSize: 12, fontFamily: 'JetBrains Mono, monospace', color: 'var(--text-secondary)' }}>
+                        OSINT Feeds: <strong style={{ color: '#00ff41' }}>Active</strong> 
+                        {lastUpdated && ` · Sync: ${new Date(lastUpdated).toLocaleTimeString()}`}
+                    </span>
                 </div>
-                <button className="btn btn-secondary btn-sm" onClick={fetchFeed} disabled={loading}>
-                    <RefreshCw size={13} className={loading ? 'spinning' : ''} /> Refresh
+                <button className="btn btn-secondary btn-sm" onClick={fetchFeed} disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <RefreshCw size={12} className={loading ? 'spinning' : ''} /> Refresh Feeds
                 </button>
             </div>
 
-            {/* OSINT Config */}
-            {isContextualAdmin && <MispConfigPanel onSaved={fetchFeed} />}
-
-            {/* Source Status Bar */}
-            {Object.keys(sources).length > 0 && (
-                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 20 }}>
-                    {Object.entries(SOURCE_META).map(([key]) => (
-                        <SourceBadge
-                            key={key}
-                            sourceKey={key}
-                            status={sources[key]}
-                            configured={key === 'misp' ? Boolean(sources.misp) : key === 'otx' ? Boolean(sources.otx) : true}
-                        />
-                    ))}
-                </div>
-            )}
-
-            {/* Severity Stats */}
-            <div className="grid-4" style={{ marginBottom: 20 }}>
-                {['Critical', 'High', 'Medium', 'Low'].map(s => (
-                    <div
-                        key={s}
-                        onClick={() => setSev(sevFilter === s ? 'all' : s)}
-                        style={{ background: 'var(--bg-card)', border: `1px solid ${SEV_COLOR[s]}22`, borderRadius: 10, padding: '12px 16px', borderTop: `2px solid ${SEV_COLOR[s]}`, cursor: 'pointer', opacity: sevFilter === 'all' || sevFilter === s ? 1 : 0.4, transition: 'opacity 0.15s' }}
-                    >
-                        <div style={{ fontSize: 11, color: '#94a3b8', marginBottom: 4 }}>{s}</div>
-                        <div style={{ fontSize: 28, fontWeight: 800, fontFamily: 'JetBrains Mono, monospace', color: SEV_COLOR[s] }}>
-                            {loading ? '—' : counts[s]}
-                        </div>
+            {/* Config & Severity Container */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 20, marginBottom: 24, alignItems: 'stretch' }}>
+                {isContextualAdmin && <MispConfigPanel onSaved={fetchFeed} />}
+                
+                {/* Threat Severity Stats */}
+                <div className="card" style={{ padding: 20, display: 'flex', flexDirection: 'column', gap: 16, flex: 1, minHeight: 280 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <Shield size={16} color="var(--bold-primary)" />
+                        <h3 style={{ margin: 0, fontSize: 13, fontWeight: 700, fontFamily: 'JetBrains Mono, monospace', textTransform: 'uppercase', letterSpacing: '0.06em', color: 'var(--text-secondary)' }}>Severity Metrics</h3>
                     </div>
-                ))}
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, flex: 1 }}>
+                        {['Critical', 'High', 'Medium', 'Low'].map(s => {
+                            const isActive = sevFilter === s
+                            const color = SEV_COLOR[s]
+                            return (
+                                <div
+                                    key={s}
+                                    onClick={() => setSev(sevFilter === s ? 'all' : s)}
+                                    style={{
+                                        background: isActive ? `${color}15` : 'rgba(255,255,255,0.01)',
+                                        border: isActive ? `2px solid ${color}` : '2px solid var(--bold-surface)',
+                                        borderRadius: 8,
+                                        padding: '12px 14px',
+                                        cursor: 'pointer',
+                                        transition: 'all 0.15s ease',
+                                        display: 'flex',
+                                        flexDirection: 'column',
+                                        justifyContent: 'space-between',
+                                        boxShadow: isActive ? `0 0 12px ${color}15` : 'none',
+                                    }}
+                                >
+                                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>{s}</div>
+                                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginTop: 4 }}>
+                                        <div style={{ fontSize: 28, fontWeight: 900, color: color, fontFamily: 'JetBrains Mono, monospace', lineHeight: 1 }}>
+                                            {loading ? '—' : counts[s]}
+                                        </div>
+                                        <div style={{ fontSize: 9, fontWeight: 600, color: isActive ? color : 'var(--text-muted)', opacity: isActive ? 1 : 0.6 }}>
+                                            {isActive ? 'ACTIVE' : 'FILTER'}
+                                        </div>
+                                    </div>
+                                </div>
+                            )
+                        })}
+                    </div>
+                </div>
             </div>
 
-            {/* Filters Row */}
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16, alignItems: 'center' }}>
-                {/* Source filter */}
-                {activeSources.length > 1 && (
-                    <div style={{ display: 'flex', gap: 5 }}>
-                        <button onClick={() => setSrc('all')} style={btnStyle(srcFilter === 'all', '#0077BC')}>All Sources</button>
-                        {activeSources.map(([key, meta]) => (
-                            <button key={key} onClick={() => setSrc(srcFilter === key ? 'all' : key)} style={btnStyle(srcFilter === key, meta.color)}>
-                                {meta.icon} {meta.label}
-                            </button>
+            {/* Source Status Bar & Filters Row */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap', marginBottom: 20, borderBottom: '1px solid var(--bold-surface)', paddingBottom: 16 }}>
+                {Object.keys(sources).length > 0 && (
+                    <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Status:</span>
+                        {Object.entries(SOURCE_META).map(([key]) => (
+                            <SourceBadge
+                                key={key}
+                                sourceKey={key}
+                                status={sources[key]}
+                                configured={key === 'misp' ? Boolean(sources.misp) : key === 'otx' ? Boolean(sources.otx) : true}
+                            />
                         ))}
+                    </div>
+                )}
+
+                {/* Source filter dropdown */}
+                {activeSources.length > 1 && (
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <label style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '0.04em', whiteSpace: 'nowrap' }}>
+                            Filter Source:
+                        </label>
+                        <select
+                            className="form-input"
+                            value={srcFilter}
+                            onChange={(e) => setSrc(e.target.value)}
+                            style={{
+                                padding: '6px 12px',
+                                minHeight: '32px',
+                                height: '32px',
+                                width: 'auto',
+                                minWidth: '160px',
+                                fontSize: '12px',
+                                cursor: 'pointer',
+                                background: 'var(--bg-card)',
+                                borderColor: 'var(--border-dim)',
+                                color: '#fff',
+                                fontWeight: 600,
+                                borderRadius: '4px',
+                            }}
+                        >
+                            <option value="all" style={{ background: '#111', color: '#fff' }}>All Sources</option>
+                            {activeSources.map(([key, meta]) => (
+                                <option key={key} value={key} style={{ background: '#111', color: meta.color || '#fff' }}>
+                                    {meta.label}
+                                </option>
+                            ))}
+                        </select>
                     </div>
                 )}
             </div>
@@ -293,58 +359,70 @@ export default function ThreatFeed() {
                             <div
                                 key={t.id}
                                 className="card"
-                                style={{ borderLeft: `3px solid ${sevColor}`, transition: 'all 0.2s ease', padding: '14px 16px' }}
+                                style={{
+                                    borderLeft: `4px solid ${sevColor}`,
+                                    transition: 'all 0.2s ease',
+                                    padding: '16px 20px',
+                                    background: 'var(--bg-card)',
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    gap: 12
+                                }}
                             >
-                                <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
-                                    <div style={{ flex: 1, minWidth: 0 }}>
-                                        {/* Title row */}
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6, flexWrap: 'wrap' }}>
-                                            <span className={`badge badge-${SEV_CLASS[t.severity] || 'info'}`}>{t.severity}</span>
-                                            {t.is_historic && (
-                                                <span title="Loaded from local database storage" style={{ display: 'flex', alignItems: 'center', color: '#0077BC' }}>
-                                                    <Database size={13} />
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: 12 }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                                        <span className={`badge badge-${SEV_CLASS[t.severity] || 'info'}`}>{t.severity}</span>
+                                        {t.is_historic && (
+                                            <span title="Loaded from local database storage" style={{ display: 'inline-flex', alignItems: 'center', color: 'var(--bold-primary)', background: 'rgba(0,255,65,0.05)', padding: '2px 6px', borderRadius: 4, border: '1px solid rgba(0,255,65,0.15)', gap: 4, fontSize: 10, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600 }}>
+                                                <Database size={11} /> CACHED
+                                            </span>
+                                        )}
+                                        <h3 style={{ fontSize: 15, fontWeight: 700, color: '#f0f4ff', margin: 0 }}>{t.title}</h3>
+                                    </div>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 11, color: 'var(--text-muted)', fontFamily: 'JetBrains Mono, monospace' }}>
+                                        <span style={{ padding: '2px 8px', borderRadius: 4, background: `${srcMeta.color}15`, color: srcMeta.color, border: `1px solid ${srcMeta.color}25`, fontSize: 10, fontWeight: 700, textTransform: 'uppercase' }}>
+                                            {srcMeta.label}
+                                        </span>
+                                        <span>•</span>
+                                        <span>{formatFeedTime(t.timestamp)}</span>
+                                    </div>
+                                </div>
+
+                                {t.description && (
+                                    <p style={{ fontSize: 13, color: '#94a3b8', margin: 0, lineHeight: 1.6 }}>
+                                        {t.description}
+                                    </p>
+                                )}
+
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', flexWrap: 'wrap', gap: 12, borderTop: '1px solid rgba(255,255,255,0.04)', paddingTop: 12, marginTop: 4 }}>
+                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, flex: 1, minWidth: '240px' }}>
+                                        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                                            {t.technique && (
+                                                <span className="badge badge-attack" style={{ fontFamily: 'JetBrains Mono, monospace' }}>
+                                                    {t.technique}
                                                 </span>
                                             )}
-                                            <h3 style={{ fontSize: 14, fontWeight: 700, color: '#f0f4ff', margin: 0 }}>{t.title}</h3>
-                                        </div>
-
-                                        {/* Meta row */}
-                                        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: t.iocs?.length > 0 ? 8 : 0 }}>
-                                            {t.technique && <span className="badge badge-attack">{t.technique}</span>}
                                             {t.tactic && t.tactic !== 'Unknown' && (
-                                                <span style={{ fontSize: 11, color: '#94a3b8', display: 'flex', alignItems: 'center', gap: 3 }}>🎯 {t.tactic}</span>
+                                                <span style={{ fontSize: 11, color: 'var(--text-secondary)', display: 'inline-flex', alignItems: 'center', gap: 4, background: 'rgba(255,255,255,0.03)', padding: '2px 8px', borderRadius: 4, border: '1px solid rgba(255,255,255,0.05)' }}>
+                                                    Tactic: <strong>{t.tactic}</strong>
+                                                </span>
                                             )}
-                                            <span
-                                                style={{ fontSize: 11, padding: '1px 7px', borderRadius: 4, background: `${srcMeta.color}15`, color: srcMeta.color, border: `1px solid ${srcMeta.color}30` }}
-                                            >
-                                                {srcMeta.icon} {srcMeta.label}
-                                            </span>
-                                            <span style={{ fontSize: 11, color: '#475569' }}>🕐 {t.timestamp}</span>
                                         </div>
 
-                                        {/* Description */}
-                                        {t.description && (
-                                            <p style={{ fontSize: 12, color: '#64748b', margin: '6px 0 6px', lineHeight: 1.5 }}>
-                                                {t.description}
-                                            </p>
-                                        )}
-
-                                        {/* IoCs */}
                                         {t.iocs?.length > 0 && (
-                                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                                            <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginTop: 2 }}>
                                                 {t.iocs.map((ioc, i) => (
-                                                    <span key={i} style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, padding: '2px 7px', background: 'rgba(255,255,255,0.04)', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 4, color: '#94a3b8', maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                    <span key={i} style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, padding: '2px 8px', background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.06)', borderRadius: 4, color: 'var(--text-secondary)', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={ioc}>
                                                         {ioc}
                                                     </span>
                                                 ))}
                                             </div>
                                         )}
 
-                                        {/* Tags */}
                                         {t.tags?.length > 0 && (
-                                            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap', marginTop: 6 }}>
+                                            <div style={{ display: 'flex', gap: 5, flexWrap: 'wrap' }}>
                                                 {t.tags.map((tag, i) => (
-                                                    <span key={i} style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.04)', color: '#475569', border: '1px solid rgba(255,255,255,0.06)' }}>
+                                                    <span key={i} style={{ fontSize: 10, padding: '1px 6px', borderRadius: 4, background: 'rgba(255,255,255,0.02)', color: 'var(--text-muted)', border: '1px solid rgba(255,255,255,0.04)' }}>
                                                         #{tag}
                                                     </span>
                                                 ))}
@@ -352,29 +430,53 @@ export default function ThreatFeed() {
                                         )}
                                     </div>
 
-                                    {/* Right side */}
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: 6, alignItems: 'flex-end', flexShrink: 0 }}>
-                                        {t.frameworks?.map(f => (
-                                            <span key={f} style={{ fontSize: 10, padding: '2px 7px', borderRadius: 4, background: 'rgba(0,212,255,0.08)', color: '#0077BC', border: '1px solid rgba(0,212,255,0.15)' }}>{f}</span>
-                                        ))}
-                                        {t.technique && (
-                                            <a
-                                                href={`https://attack.mitre.org/techniques/${t.technique.replace('.', '/')}`}
-                                                target="_blank" rel="noreferrer"
-                                                style={{ fontSize: 11, color: '#0077BC', display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', marginTop: 4 }}
-                                            >
-                                                ATT&CK <ExternalLink size={10} />
-                                            </a>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+                                        <div style={{ display: 'flex', gap: 6 }}>
+                                            {t.frameworks?.map(f => {
+                                                const badgeStyle = getFrameworkBadgeStyle(f)
+                                                return (
+                                                    <span
+                                                        key={f}
+                                                        style={{
+                                                            fontSize: 10,
+                                                            fontWeight: 700,
+                                                            padding: '3px 8px',
+                                                            borderRadius: 4,
+                                                            ...badgeStyle
+                                                        }}
+                                                    >
+                                                        {f}
+                                                    </span>
+                                                )
+                                            })}
+                                        </div>
+
+                                        {t.frameworks?.length > 0 && (t.technique || t.external_url) && (
+                                            <span style={{ color: 'rgba(255,255,255,0.1)', fontSize: 12 }}>|</span>
                                         )}
-                                        {t.external_url && (
-                                            <a
-                                                href={t.external_url}
-                                                target="_blank" rel="noreferrer"
-                                                style={{ fontSize: 11, color: srcMeta.color, display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none' }}
-                                            >
-                                                Details <ExternalLink size={10} />
-                                            </a>
-                                        )}
+
+                                        <div style={{ display: 'flex', gap: 12 }}>
+                                            {t.technique && (
+                                                <a
+                                                    href={`https://attack.mitre.org/techniques/${t.technique.replace('.', '/')}`}
+                                                    target="_blank" rel="noreferrer"
+                                                    style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', color: 'var(--bold-primary)' }}
+                                                    className="auth-link"
+                                                >
+                                                    ATT&CK <ExternalLink size={10} />
+                                                </a>
+                                            )}
+                                            {t.external_url && (
+                                                <a
+                                                    href={t.external_url}
+                                                    target="_blank" rel="noreferrer"
+                                                    style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 4, textDecoration: 'none', color: srcMeta.color }}
+                                                    className="auth-link"
+                                                >
+                                                    Details <ExternalLink size={10} />
+                                                </a>
+                                            )}
+                                        </div>
                                     </div>
                                 </div>
                             </div>
@@ -392,5 +494,6 @@ function btnStyle(active, color) {
         border: `1px solid ${active ? color + '44' : 'transparent'}`,
         background: active ? color + '18' : 'rgba(255,255,255,0.04)',
         color: active ? color : '#94a3b8',
+        flexShrink: 0,
     }
 }

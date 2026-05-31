@@ -22,10 +22,10 @@ const navItems = [
       { to: '/coverage', icon: Grid, label: 'Frameworks' },
       { to: '/chat', icon: MessageSquare, label: 'AI Assistant' },
       { to: '/reports', icon: FileText, label: 'Reports' },
-      { to: '/team',     icon: Users,         label: 'Team' },
-      { to: '/audit',    icon: ClipboardList,  label: 'Audit Log',  adminOnly: true },
-      { to: '/settings', icon: Settings,       label: 'Settings',   adminOnly: true },
-      { to: '/profile',  icon: User,           label: 'Profile' },
+      { to: '/team', icon: Users, label: 'Team' },
+      { to: '/audit', icon: ClipboardList, label: 'Audit Log', adminOnly: true },
+      { to: '/settings', icon: Settings, label: 'Settings', adminOnly: true },
+      { to: '/profile', icon: User, label: 'Profile' },
     ]
   },
 ]
@@ -39,8 +39,8 @@ export default function Sidebar() {
       return {
         ...group,
         items: group.items.filter(item => {
-           if (item.adminOnly) return isContextualAdmin
-           return true
+          if (item.adminOnly) return isContextualAdmin
+          return true
         })
       }
     }

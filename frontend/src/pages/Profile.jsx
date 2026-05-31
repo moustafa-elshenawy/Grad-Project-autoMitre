@@ -118,10 +118,6 @@ export default function Profile() {
 
     return (
         <div>
-            <div className="page-header" style={{ marginBottom: 24 }}>
-                <h1>User Profile</h1>
-                <p>Manage your account settings, profile data, and security</p>
-            </div>
 
             {/* ── Account Overview ── */}
             <div className="card" style={{ marginBottom: 20 }}>

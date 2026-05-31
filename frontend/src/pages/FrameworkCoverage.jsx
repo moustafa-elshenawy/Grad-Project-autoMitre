@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { Shield, Target, BookOpen, AlertTriangle, ExternalLink, Loader2, ChevronRight, Activity, Zap, CheckCircle2 } from 'lucide-react'
+import { Shield, Target, BookOpen, AlertTriangle, ExternalLink, Loader2, ChevronRight, Activity, Zap, CheckCircle2, XCircle } from 'lucide-react'
 import { useDataView } from '../contexts/DataViewContext'
 
 // Original static definitions for fallback/reference
@@ -205,10 +205,10 @@ export default function FrameworkCoverage() {
             {/* Framework switcher */}
             <div className="tabs" style={{ marginBottom: 24 }}>
                 {[
-                    ['attack', '🎯 MITRE ATT&CK'],
-                    ['defend', '🛡️ MITRE D3FEND'],
-                    ['nist', '📋 NIST SP 800-53'],
-                    ['owasp', '🌐 OWASP Top 10']
+                    ['attack', 'MITRE ATT&CK'],
+                    ['defend', 'MITRE D3FEND'],
+                    ['nist', 'NIST SP 800-53'],
+                    ['owasp', 'OWASP Top 10']
                 ].map(([id, label]) => (
                     <button key={id} className={`tab ${activeFramework === id ? 'active' : ''}`} onClick={() => setActiveFramework(id)}>
                         {label}
@@ -417,7 +417,9 @@ export default function FrameworkCoverage() {
                                 const isCovered = owaspCoverage.has(item.id)
                                 return (
                                     <div key={item.id} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '10px 12px', background: isCovered ? 'rgba(16,185,129,0.06)' : 'rgba(255,255,255,0.02)', borderRadius: 6, border: `1px solid ${isCovered ? 'rgba(16,185,129,0.15)' : 'rgba(255,255,255,0.05)'}` }}>
-                                        <span style={{ fontSize: 18 }}>{isCovered ? '✅' : '❌'}</span>
+                                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                            {isCovered ? <CheckCircle2 size={16} color="#10b981" /> : <XCircle size={16} color="#ef4444" />}
+                                        </div>
                                         <div>
                                             <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: isCovered ? '#34d399' : '#64748b', marginBottom: 2 }}>{item.id}</div>
                                             <div style={{ fontSize: 12, color: isCovered ? '#f0f4ff' : '#94a3b8', fontWeight: 500 }}>{item.name}</div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react'
-import { Users, UserPlus, Trash2, Shield, ShieldAlert, Crown, LogOut, Building2, RefreshCw, Copy, ChevronDown, Check, X } from 'lucide-react'
+import { Users, UserPlus, Trash2, Shield, ShieldAlert, LogOut, Building2, RefreshCw, Copy, ChevronDown, Check, X } from 'lucide-react'
 import { useAuth } from '../contexts/AuthContext'
 
 const API = 'http://127.0.0.1:8000'
@@ -13,7 +13,7 @@ function RoleBadge({ role }) {
     const style = roleColors[role] || roleColors.analyst
     return (
         <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, textTransform: 'uppercase', letterSpacing: '0.05em', ...style }}>
-            {role === 'admin' && <Crown size={9} style={{ marginRight: 3, display: 'inline' }} />}{role}
+            {role}
         </span>
     )
 }
@@ -32,6 +32,16 @@ export default function TeamManagement() {
     const [newGroupName, setNewGroupName] = useState('')
     const [newGroupDesc, setNewGroupDesc] = useState('')
     const [creating, setCreating] = useState(false)
+    const [confirmModal, setConfirmModal] = useState({
+        show: false,
+        title: '',
+        message: '',
+        onConfirm: null,
+        loading: false,
+        error: null,
+        confirmBtnText: 'Confirm',
+        isDanger: false
+    })
 
     const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
 
@@ -97,19 +107,36 @@ export default function TeamManagement() {
         }
     }
 
-    const handleRemoveMember = async (userId, username) => {
-        if (!confirm(`Remove ${username} from the team?`)) return
+    const handleConfirmModalAction = async () => {
+        if (!confirmModal.onConfirm) return
+        setConfirmModal(prev => ({ ...prev, loading: true, error: null }))
         try {
-            const res = await fetch(`${API}/api/groups/${groupData.group.id}/members/${userId}`, {
-                method: 'DELETE', headers
-            })
-            const data = await res.json()
-            if (!res.ok) throw new Error(data.detail)
-            flash(setActionMsg, { type: 'success', text: data.message })
-            fetchGroup()
+            await confirmModal.onConfirm()
+            setConfirmModal({ show: false, title: '', message: '', onConfirm: null, loading: false, error: null, confirmBtnText: 'Confirm', isDanger: false })
         } catch (e) {
-            flash(setActionMsg, { type: 'error', text: e.message })
+            setConfirmModal(prev => ({ ...prev, loading: false, error: e.message || 'Operation failed.' }))
         }
+    }
+
+    const triggerRemoveMemberConfirm = (userId, username) => {
+        setConfirmModal({
+            show: true,
+            title: 'Remove Team Member',
+            message: `Are you sure you want to remove ${username} from the team?`,
+            confirmBtnText: 'Remove Member',
+            isDanger: true,
+            loading: false,
+            error: null,
+            onConfirm: async () => {
+                const res = await fetch(`${API}/api/groups/${groupData.group.id}/members/${userId}`, {
+                    method: 'DELETE', headers
+                })
+                const data = await res.json()
+                if (!res.ok) throw new Error(data.detail)
+                flash(setActionMsg, { type: 'success', text: data.message })
+                fetchGroup()
+            }
+        })
     }
 
     const handleChangeRole = async (userId, newRole) => {
@@ -127,28 +154,40 @@ export default function TeamManagement() {
         }
     }
 
-    const handleLeave = async () => {
-        if (!confirm('Are you sure you want to leave this team?')) return
-        try {
-            const res = await fetch(`${API}/api/groups/leave`, { method: 'POST', headers })
-            const data = await res.json()
-            if (!res.ok) throw new Error(data.detail)
-            fetchGroup()
-        } catch (e) {
-            flash(setActionMsg, { type: 'error', text: e.message })
-        }
+    const triggerLeaveConfirm = () => {
+        setConfirmModal({
+            show: true,
+            title: 'Leave Team Workspace',
+            message: 'Are you sure you want to leave this team workspace? You will lose access to all shared records.',
+            confirmBtnText: 'Leave Workspace',
+            isDanger: true,
+            loading: false,
+            error: null,
+            onConfirm: async () => {
+                const res = await fetch(`${API}/api/groups/leave`, { method: 'POST', headers })
+                const data = await res.json()
+                if (!res.ok) throw new Error(data.detail)
+                fetchGroup()
+            }
+        })
     }
 
-    const handleDeleteGroup = async () => {
-        if (!confirm('Permanently delete this workspace and remove all members? This cannot be undone.')) return
-        try {
-            const res = await fetch(`${API}/api/groups/${groupData.group.id}`, { method: 'DELETE', headers })
-            const data = await res.json()
-            if (!res.ok) throw new Error(data.detail)
-            fetchGroup()
-        } catch (e) {
-            flash(setActionMsg, { type: 'error', text: e.message })
-        }
+    const triggerDeleteGroupConfirm = () => {
+        setConfirmModal({
+            show: true,
+            title: 'Delete Team Workspace',
+            message: 'Permanently delete this workspace and remove all members? This action is permanent and cannot be undone.',
+            confirmBtnText: 'Delete Workspace',
+            isDanger: true,
+            loading: false,
+            error: null,
+            onConfirm: async () => {
+                const res = await fetch(`${API}/api/groups/${groupData.group.id}`, { method: 'DELETE', headers })
+                const data = await res.json()
+                if (!res.ok) throw new Error(data.detail)
+                fetchGroup()
+            }
+        })
     }
 
     if (loading) return (
@@ -225,7 +264,7 @@ export default function TeamManagement() {
                             </div>
                         </div>
                     </div>
-                    <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                    <div style={{ display: 'flex', gap: 8, flexShrink: 0, alignItems: 'center' }}>
                         <button className="btn btn-secondary" onClick={fetchGroup} title="Refresh" style={{ padding: '6px 10px' }}>
                             <RefreshCw size={14} />
                         </button>
@@ -307,7 +346,7 @@ export default function TeamManagement() {
                                             {m.role === 'admin' ? '↓ Analyst' : '↑ Admin'}
                                         </button>
                                         <button
-                                            onClick={() => handleRemoveMember(m.user_id, m.username)}
+                                            onClick={() => triggerRemoveMemberConfirm(m.user_id, m.username)}
                                             className="btn btn-secondary"
                                             title="Remove from team"
                                             style={{ padding: '4px 8px', color: '#ef4444' }}
@@ -322,24 +361,88 @@ export default function TeamManagement() {
                 </div>
             </div>
 
-            {/* Danger zone */}
-            <div className="card" style={{ borderColor: 'rgba(239,68,68,0.2)' }}>
-                <div className="card-header" style={{ marginBottom: 16 }}>
-                    <div className="card-title" style={{ color: '#ef4444' }}><ShieldAlert size={15} color="#ef4444" /> Danger Zone</div>
-                </div>
-                <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
-                    {!isOwner && (
-                        <button className="btn btn-secondary" onClick={handleLeave} style={{ color: '#f59e0b', borderColor: 'rgba(245,158,11,0.3)' }}>
-                            <LogOut size={14} /> Leave Team
-                        </button>
-                    )}
-                    {isOwner && (
-                        <button className="btn btn-secondary" onClick={handleDeleteGroup} style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.3)' }}>
-                            <Trash2 size={14} /> Delete Workspace
-                        </button>
-                    )}
-                </div>
+            {/* Action buttons directly on the page, without the Danger Zone card wrapper */}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 24, marginBottom: 24 }}>
+                {!isOwner && (
+                    <button className="btn btn-secondary" onClick={triggerLeaveConfirm} style={{ color: '#f59e0b', borderColor: 'rgba(245,158,11,0.3)' }}>
+                        <LogOut size={14} /> Leave Team
+                    </button>
+                )}
+                {isOwner && (
+                    <button className="btn btn-secondary" onClick={triggerDeleteGroupConfirm} style={{ color: '#ef4444', borderColor: 'rgba(239,68,68,0.3)' }}>
+                        <Trash2 size={14} /> Delete Workspace
+                    </button>
+                )}
             </div>
+
+            {/* Custom confirm modal overlay */}
+            {confirmModal.show && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0, 0, 0, 0.75)',
+                    backdropFilter: 'blur(4px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 9999
+                }}>
+                    <div className="card" style={{
+                        maxWidth: 420,
+                        width: '90%',
+                        padding: '24px 28px',
+                        border: `2px solid ${confirmModal.isDanger ? '#ef4444' : 'var(--bold-primary, #00ff41)'}`,
+                        boxShadow: `8px 8px 0 0 ${confirmModal.isDanger ? 'rgba(239, 68, 68, 0.25)' : 'rgba(0, 255, 65, 0.25)'}`,
+                        background: '#0c0f12',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: 16
+                    }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, color: confirmModal.isDanger ? '#ef4444' : 'var(--bold-primary, #00ff41)' }}>
+                            <ShieldAlert size={24} />
+                            <h3 style={{ margin: 0, fontFamily: 'Archivo Black, sans-serif', fontSize: 16, textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                                {confirmModal.title}
+                            </h3>
+                        </div>
+                        <p style={{ margin: 0, fontSize: 14, color: 'var(--text-secondary, #9CA3AF)', lineHeight: 1.6 }}>
+                            {confirmModal.message}
+                        </p>
+                        {confirmModal.error && (
+                            <div style={{ color: '#ef4444', fontSize: 13, fontWeight: 600 }}>
+                                {confirmModal.error}
+                            </div>
+                        )}
+                        <div style={{ display: 'flex', gap: 12, marginTop: 8 }}>
+                            <button
+                                onClick={handleConfirmModalAction}
+                                className="btn btn-primary"
+                                disabled={confirmModal.loading}
+                                style={{
+                                    flex: 1,
+                                    padding: '10px 16px',
+                                    display: 'flex',
+                                    justifyContent: 'center',
+                                    alignItems: 'center',
+                                    background: confirmModal.isDanger ? '#ef4444' : 'var(--bold-primary, #00ff41)',
+                                    borderColor: confirmModal.isDanger ? '#dc2626' : 'var(--bold-primary-deep, #00cc33)',
+                                    color: confirmModal.isDanger ? '#ffffff' : '#020202',
+                                    boxShadow: `4px 4px 0 0 ${confirmModal.isDanger ? '#7f1d1d' : 'var(--bold-surface)'}`
+                                }}
+                            >
+                                {confirmModal.loading ? 'Processing...' : confirmModal.confirmBtnText}
+                            </button>
+                            <button
+                                onClick={() => setConfirmModal({ show: false, title: '', message: '', onConfirm: null, loading: false, error: null, confirmBtnText: 'Confirm', isDanger: false })}
+                                className="btn btn-secondary"
+                                disabled={confirmModal.loading}
+                                style={{ flex: 1, padding: '10px 16px', display: 'flex', justifyContent: 'center', alignItems: 'center' }}
+                            >
+                                Cancel
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

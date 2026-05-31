@@ -28,6 +28,21 @@ const Field = ({ label, tag, icon, type = 'text', value, onChange, placeholder, 
     </div>
 );
 
+const securityWords = [
+    { text: 'RANSOMWARE', top: '10%', size: '28px', blur: '2px', duration: '40s', delay: '-10s', dir: 'right' },
+    { text: 'SQL INJECTION', top: '25%', size: '20px', blur: '3px', duration: '45s', delay: '-5s', dir: 'left' },
+    { text: 'MITRE ATT&CK', top: '40%', size: '32px', blur: '1.5px', duration: '35s', delay: '-15s', dir: 'right' },
+    { text: 'ZERO-DAY EXPLOIT', top: '55%', size: '24px', blur: '3px', duration: '50s', delay: '-20s', dir: 'left' },
+    { text: 'PHISHING LINK', top: '70%', size: '26px', blur: '4px', duration: '38s', delay: '-2s', dir: 'right' },
+    { text: 'APT29 / COBALT STRIKE', top: '85%', size: '22px', blur: '4px', duration: '48s', delay: '-25s', dir: 'left' },
+    { text: 'CREDENTIAL HARVESTING', top: '18%', size: '18px', blur: '3px', duration: '55s', delay: '-30s', dir: 'left' },
+    { text: 'DATA EXFILTRATION', top: '33%', size: '22px', blur: '2px', duration: '42s', delay: '-8s', dir: 'right' },
+    { text: 'T1059.001', top: '48%', size: '24px', blur: '3px', duration: '30s', delay: '-12s', dir: 'left' },
+    { text: 'BRUTE FORCE', top: '63%', size: '18px', blur: '4px', duration: '52s', delay: '-18s', dir: 'right' },
+    { text: 'MALWARE ANALYSIS', top: '78%', size: '20px', blur: '3px', duration: '46s', delay: '-14s', dir: 'left' },
+    { text: 'RECONNAISSANCE', top: '92%', size: '22px', blur: '5px', duration: '60s', delay: '-7s', dir: 'right' },
+];
+
 const Register = () => {
     const [step, setStep] = useState(1);
     const [username, setUsername] = useState('');
@@ -169,6 +184,29 @@ const Register = () => {
             <div style={{ position: 'fixed', inset: 0, zIndex: 1, pointerEvents: 'none', backgroundImage: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.18) 2px, rgba(0,0,0,0.18) 4px)', opacity: 0.6 }} />
             <div style={{ position: 'fixed', top: '15%', right: '8%', width: 600, height: 600, background: 'radial-gradient(circle, rgba(0,255,65,0.04) 0%, transparent 65%)', borderRadius: '50%', pointerEvents: 'none', zIndex: 0 }} />
 
+            {/* Blurry glowing security words */}
+            {securityWords.map((word, i) => (
+                <div key={i} style={{
+                    position: 'absolute',
+                    top: word.top,
+                    left: 0,
+                    fontSize: word.size,
+                    color: 'rgba(0, 255, 65, 0.05)',
+                    textShadow: '0 0 10px rgba(0, 255, 65, 0.5), 0 0 20px rgba(0, 255, 65, 0.2)',
+                    filter: `blur(${word.blur})`,
+                    fontFamily: 'JetBrains Mono, monospace',
+                    fontWeight: 800,
+                    pointerEvents: 'none',
+                    userSelect: 'none',
+                    zIndex: 1,
+                    animation: `move-${word.dir} ${word.duration} linear infinite`,
+                    animationDelay: word.delay,
+                    whiteSpace: 'nowrap',
+                }}>
+                    {word.text}
+                </div>
+            ))}
+
             <button onClick={() => navigate('/')}
                 style={{ position: 'fixed', top: 20, left: 32, zIndex: 10, background: 'transparent', border: 'none', color: 'rgba(255,255,255,0.35)', cursor: 'pointer', fontFamily: 'JetBrains Mono, monospace', fontSize: 11, letterSpacing: '0.08em', transition: 'color 0.2s' }}
                 onMouseEnter={e => e.currentTarget.style.color = '#00ff41'}
@@ -299,6 +337,16 @@ const Register = () => {
             <style>{`
                 input::placeholder { color: rgba(255,255,255,0.18); font-family: 'JetBrains Mono', monospace; }
                 input:-webkit-autofill { -webkit-box-shadow: 0 0 0 30px #020202 inset !important; -webkit-text-fill-color: #fff !important; }
+                @keyframes move-right {
+                    0% { transform: translate3d(-25vw, 0, 0) rotate(0deg); }
+                    50% { transform: translate3d(50vw, -15px, 0) rotate(3deg); }
+                    100% { transform: translate3d(125vw, 0, 0) rotate(0deg); }
+                }
+                @keyframes move-left {
+                    0% { transform: translate3d(125vw, 0, 0) rotate(0deg); }
+                    50% { transform: translate3d(50vw, 15px, 0) rotate(-3deg); }
+                    100% { transform: translate3d(-25vw, 0, 0) rotate(0deg); }
+                }
             `}</style>
         </div>
     );

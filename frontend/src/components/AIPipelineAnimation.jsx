@@ -19,15 +19,15 @@ const PIPELINE_STAGES = [
         id: 'input',
         label: 'Input Normalization',
         sublabel: 'Tokenizing & cleaning threat text',
-        icon: '⌨️',
-        color: '#38bdf8',
+        icon: '01',
+        color: '#00ff41',
         duration: 800,
     },
     {
         id: 'ner',
         label: 'Entity Extraction',
         sublabel: 'Running NER — IPs, CVEs, domains, tools',
-        icon: '🔎',
+        icon: '02',
         color: '#a78bfa',
         duration: 900,
     },
@@ -35,7 +35,7 @@ const PIPELINE_STAGES = [
         id: 'secbert',
         label: 'SecBERT Classification',
         sublabel: 'Stage 1 ML — TTP mapping via TRAM dataset',
-        icon: '🧠',
+        icon: '03',
         color: '#f472b6',
         duration: 1400,
     },
@@ -43,7 +43,7 @@ const PIPELINE_STAGES = [
         id: 'mpnet',
         label: 'MPNet Semantic Embedder',
         sublabel: 'Computing cosine similarity against ATT&CK v14',
-        icon: '🔺',
+        icon: '04',
         color: '#34d399',
         duration: 1200,
     },
@@ -51,7 +51,7 @@ const PIPELINE_STAGES = [
         id: 'adaptivek',
         label: 'Adaptive-K Filtering',
         sublabel: 'Pruning low-confidence noise techniques',
-        icon: '⚡',
+        icon: '05',
         color: '#fbbf24',
         duration: 600,
     },
@@ -59,7 +59,7 @@ const PIPELINE_STAGES = [
         id: 'cvss',
         label: 'CVSS Severity Regression',
         sublabel: 'Scoring via ML model trained on 277k CVEs',
-        icon: '📊',
+        icon: '06',
         color: '#fb923c',
         duration: 800,
     },
@@ -67,15 +67,15 @@ const PIPELINE_STAGES = [
         id: 'frameworks',
         label: 'Framework Mapping',
         sublabel: 'Cross-referencing D3FEND · NIST 800-53 · OWASP',
-        icon: '🗺️',
-        color: '#0077BC',
+        icon: '07',
+        color: '#00ff41',
         duration: 900,
     },
     {
         id: 'assembly',
         label: 'Report Assembly',
         sublabel: 'Generating mitigations & kill-chain predictions',
-        icon: '📋',
+        icon: '08',
         color: '#10b981',
         duration: 700,
     },
@@ -185,11 +185,11 @@ export default function AIPipelineAnimation({ visible }) {
             <div style={{
                 animation: 'fade-in 0.3s ease',
                 marginTop: 20,
-                background: 'linear-gradient(135deg, rgba(10,16,30,0.97) 0%, rgba(15,23,42,0.97) 100%)',
-                border: '1px solid rgba(0,212,255,0.2)',
+                background: 'linear-gradient(135deg, rgba(12,20,14,0.97) 0%, rgba(8,14,10,0.97) 100%)',
+                border: '1px solid rgba(0,255,65,0.25)',
                 borderRadius: 16,
                 overflow: 'hidden',
-                boxShadow: '0 0 40px rgba(0, 212, 255, 0.08)',
+                boxShadow: '0 0 40px rgba(0, 255, 65, 0.08)',
                 position: 'relative',
             }}>
 
@@ -197,7 +197,7 @@ export default function AIPipelineAnimation({ visible }) {
                 <div style={{
                     position: 'absolute',
                     left: 0, right: 0, height: 2,
-                    background: 'linear-gradient(90deg, transparent, rgba(0,212,255,0.4), transparent)',
+                    background: 'linear-gradient(90deg, transparent, rgba(0,255,65,0.45), transparent)',
                     animation: 'scan-line 2.5s linear infinite',
                     zIndex: 2,
                     pointerEvents: 'none',
@@ -208,16 +208,16 @@ export default function AIPipelineAnimation({ visible }) {
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
                     padding: '14px 20px',
                     borderBottom: '1px solid rgba(255,255,255,0.06)',
-                    background: 'rgba(0,212,255,0.04)',
+                    background: 'rgba(0,255,65,0.04)',
                 }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                        <PulsingDot color="#0077BC" />
+                        <PulsingDot color="#00ff41" />
                         <span style={{ fontSize: 13, fontWeight: 700, color: '#f0f4ff', letterSpacing: 0.5 }}>
                             AI Pipeline — Live Processing
                         </span>
                         <span style={{
-                            fontSize: 9, padding: '2px 8px', background: 'rgba(0,212,255,0.12)',
-                            color: '#0077BC', borderRadius: 100, border: '1px solid rgba(0,212,255,0.25)',
+                            fontSize: 9, padding: '2px 8px', background: 'rgba(0,255,65,0.12)',
+                            color: '#00ff41', borderRadius: 100, border: '1px solid rgba(0,255,65,0.25)',
                             fontWeight: 700, textTransform: 'uppercase', letterSpacing: 1,
                         }}>
                             SOTA
@@ -230,7 +230,7 @@ export default function AIPipelineAnimation({ visible }) {
                         <span style={{
                             fontFamily: 'JetBrains Mono, monospace',
                             fontSize: 13, fontWeight: 700,
-                            color: '#0077BC',
+                            color: '#00ff41',
                         }}>
                             {Math.round(progress)}%
                         </span>
@@ -242,10 +242,10 @@ export default function AIPipelineAnimation({ visible }) {
                     <div style={{
                         height: '100%',
                         width: `${progress}%`,
-                        background: 'linear-gradient(90deg, #3b82f6, #0077BC)',
+                        background: 'linear-gradient(90deg, #00cc33, #00ff41)',
                         borderRadius: 100,
                         transition: 'width 0.5s ease',
-                        boxShadow: '0 0 12px rgba(0,212,255,0.6)',
+                        boxShadow: '0 0 12px rgba(0,255,65,0.6)',
                     }} />
                     {/* shimmer */}
                     <div style={{
@@ -298,7 +298,7 @@ export default function AIPipelineAnimation({ visible }) {
                                 <div style={{
                                     width: 32, height: 32, borderRadius: 8, flexShrink: 0,
                                     display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                    fontSize: 15,
+                                    fontSize: 10, fontWeight: 700, fontFamily: 'var(--font-mono)',
                                     background: isDone
                                         ? 'rgba(16,185,129,0.15)'
                                         : isActive
@@ -367,7 +367,7 @@ export default function AIPipelineAnimation({ visible }) {
                         { label: 'SecBERT', desc: 'jackaduma/SecBERT · TRAM', color: '#f472b6' },
                         { label: 'MPNet', desc: 'all-mpnet-base-v2 · 420MB', color: '#34d399' },
                         { label: 'CVSS ML', desc: 'RF Regressor · 277k CVEs', color: '#fb923c' },
-                        { label: 'ATT&CK v14', desc: 'MITRE Enterprise Matrix', color: '#0077BC' },
+                        { label: 'ATT&CK v14', desc: 'MITRE Enterprise Matrix', color: '#00ff41' },
                     ].map(m => (
                         <div key={m.label} style={{
                             display: 'flex', alignItems: 'center', gap: 6,

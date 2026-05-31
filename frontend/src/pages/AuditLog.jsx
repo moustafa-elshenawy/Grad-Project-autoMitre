@@ -183,24 +183,7 @@ export default function AuditLog() {
 
     return (
         <div>
-            {/* Header */}
-            <div className="page-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                    <div style={{ width: 40, height: 40, borderRadius: 10, background: 'linear-gradient(135deg, #3b82f6, #0077BC)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        <Shield size={20} color="#000" />
-                    </div>
-                    <div>
-                        <h1>Audit Log</h1>
-                        <p>Complete system-wide activity trail — auth, analysis, exports, and admin actions</p>
-                    </div>
-                </div>
-                <div className="page-header-actions">
-                    <button className="btn btn-secondary btn-sm" onClick={fetchLogs} disabled={loading}>
-                        <RefreshCw size={13} style={{ animation: loading ? 'spin 0.8s linear infinite' : 'none' }} />
-                        Refresh
-                    </button>
-                </div>
-            </div>
+            {/* Redundant local header removed; page-level title is rendered globally by AppLayout */}
 
             {error && (
                 <div className="alert alert-critical" style={{ marginBottom: 20 }}>
@@ -243,9 +226,13 @@ export default function AuditLog() {
                             style={{ width: 130, height: 36, fontSize: 12 }}>
                             {STATUSES.map(s => <option key={s} value={s}>{s || 'All Statuses'}</option>)}
                         </select>
-                        <span style={{ fontSize: 11, color: '#475569', whiteSpace: 'nowrap' }}>
+                        <span style={{ fontSize: 11, color: '#475569', whiteSpace: 'nowrap', marginRight: 'auto' }}>
                             {total} total events
                         </span>
+                        <button className="btn btn-secondary btn-sm" onClick={fetchLogs} disabled={loading} style={{ height: 36, minHeight: 36 }}>
+                            <RefreshCw size={13} style={{ animation: loading ? 'spin 0.8s linear infinite' : 'none' }} />
+                            Refresh
+                        </button>
                     </div>
                 </div>
 

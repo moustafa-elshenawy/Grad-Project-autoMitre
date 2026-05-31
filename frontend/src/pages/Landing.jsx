@@ -25,6 +25,7 @@ export default function Landing() {
   const [heroLoaded, setHeroLoaded] = useState(false)
   const [scrollY, setScrollY] = useState(0)
   const [globeX, setGlobeX] = useState(0)
+  const homeRef = useRef(null)
   const statsRef = useRef(null)
   const techRef = useRef(null)
   const blogRef = useRef(null)
@@ -61,6 +62,40 @@ export default function Landing() {
     const obs = new IntersectionObserver(([e]) => { if (e.isIntersecting) setStatsVisible(true) }, { threshold: 0.3 })
     if (statsRef.current) obs.observe(statsRef.current)
     return () => obs.disconnect()
+  }, [])
+
+  // Scroll spy observer for active nav highlight
+  useEffect(() => {
+    const options = {
+      root: null,
+      rootMargin: '-80px 0px -60% 0px',
+      threshold: 0
+    }
+
+    const callback = (entries) => {
+      entries.forEach(entry => {
+        if (entry.isIntersecting) {
+          if (entry.target === homeRef.current) {
+            setActiveNav('HOME')
+          } else if (entry.target === servicesRef.current) {
+            setActiveNav('SERVICES')
+          } else if (entry.target === techRef.current) {
+            setActiveNav('TECHNOLOGY')
+          } else if (entry.target === blogRef.current) {
+            setActiveNav('BLOG')
+          }
+        }
+      })
+    }
+
+    const observer = new IntersectionObserver(callback, options)
+
+    if (homeRef.current) observer.observe(homeRef.current)
+    if (servicesRef.current) observer.observe(servicesRef.current)
+    if (techRef.current) observer.observe(techRef.current)
+    if (blogRef.current) observer.observe(blogRef.current)
+
+    return () => observer.disconnect()
   }, [])
 
   // Globe horizontal oscillation — right → left → center
@@ -164,7 +199,7 @@ export default function Landing() {
       </nav>
 
       {/* ── HERO ── */}
-      <section style={{ position: 'relative', zIndex: 1, minHeight: '100vh', display: 'flex', alignItems: 'center', padding: '60px 40px 0' }}>
+      <section ref={homeRef} style={{ position: 'relative', zIndex: 1, minHeight: '100vh', display: 'flex', alignItems: 'center', padding: '60px 40px 0', scrollMarginTop: '80px' }}>
         <div style={{ maxWidth: 780 }}>
           {/* Terminal tag */}
           <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 12, color: 'rgba(0,255,65,0.4)', marginBottom: 28, letterSpacing: '0.06em' }}>
@@ -283,7 +318,7 @@ export default function Landing() {
       </section>
 
       {/* ── FEATURES ── */}
-      <section style={{ position: 'relative', zIndex: 1, padding: '80px 40px', borderTop: '1px solid rgba(0,255,65,0.08)' }}>
+      <section style={{ position: 'relative', zIndex: 1, padding: '80px 40px', borderTop: '1px solid rgba(0,255,65,0.08)', scrollMarginTop: '80px' }}>
         <div style={{ marginBottom: 56 }}>
           <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'rgba(0,255,65,0.3)', letterSpacing: '0.12em', marginBottom: 14 }}>&gt;_ // CORE CAPABILITIES</div>
           <h2 style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 'clamp(28px,4vw,48px)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.02em', lineHeight: 1.05, margin: 0 }}>
@@ -318,49 +353,8 @@ export default function Landing() {
         </div>
       </section>
 
-      {/* ── TECHNOLOGY ── */}
-      <section ref={techRef} id="technology" style={{ position: 'relative', zIndex: 1, padding: '80px 40px', borderTop: '1px solid rgba(0,255,65,0.08)' }}>
-        <div style={{ maxWidth: 800 }}>
-          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'rgba(0,255,65,0.4)', letterSpacing: '0.12em', marginBottom: 14 }}>&gt;_ // TECHNOLOGY</div>
-          <h2 style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 'clamp(28px,4vw,48px)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.02em', lineHeight: 1.05, margin: '0 0 24px', color: '#00ff41' }}>HOW IT WORKS</h2>
-          <p style={{ fontFamily: 'Archivo, sans-serif', fontSize: 16, color: 'rgba(255,255,255,0.65)', lineHeight: 1.8, marginBottom: 32 }}>
-            autoMITRE combines a SecBERT transformer for multi-label MITRE ATT&amp;CK TTP classification with an XGBoost ensemble for risk scoring. A local or cloud-hosted LLM (Phi-3.5-mini or Groq) provides deep natural-language threat reasoning. All analysis runs in under two seconds — on-premises or cloud.
-          </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 0, border: '1px solid rgba(0,255,65,0.08)' }}>
-            {[['SecBERT', 'Transformer model fine-tuned on CVE and threat-report corpora for TTP classification.'],['XGBoost Ensemble','Gradient-boosted severity scoring across CVSS, EPSS, and proprietary heuristics.'],['LLM Reasoning','Groq Cloud (llama-3) or local Phi-3.5-mini for narrative threat intelligence reports.']].map(([t,d],i) => (
-              <div key={i} style={{ padding: '32px 28px', borderRight: i < 2 ? '1px solid rgba(0,255,65,0.08)' : 'none' }}>
-                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, fontWeight: 700, color: '#00ff41', marginBottom: 10 }}>[0{i+1}] {t}</div>
-                <p style={{ fontFamily: 'Archivo, sans-serif', fontSize: 14, color: 'rgba(255,255,255,0.55)', lineHeight: 1.7, margin: 0 }}>{d}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* ── BLOG ── */}
-      <section ref={blogRef} id="blog" style={{ position: 'relative', zIndex: 1, padding: '80px 40px', borderTop: '1px solid rgba(0,255,65,0.08)' }}>
-        <div style={{ maxWidth: 800 }}>
-          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'rgba(0,255,65,0.4)', letterSpacing: '0.12em', marginBottom: 14 }}>&gt;_ // BLOG &amp; RESEARCH</div>
-          <h2 style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 'clamp(28px,4vw,48px)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.02em', lineHeight: 1.05, margin: '0 0 24px', color: '#00ff41' }}>THREAT INSIGHTS</h2>
-          <p style={{ fontFamily: 'Archivo, sans-serif', fontSize: 16, color: 'rgba(255,255,255,0.65)', lineHeight: 1.8, marginBottom: 40 }}>
-            Deep-dives into emerging attack patterns, MITRE ATT&amp;CK framework updates, and real-world red-team simulations. Our research team publishes weekly analysis on adversarial TTPs and defensive countermeasures drawn directly from live threat data.
-          </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 0, border: '1px solid rgba(0,255,65,0.08)' }}>
-            {[['APT29 TTP Breakdown','How autoMITRE mapped 47 techniques from a single NOBELIUM report in under 3 seconds.'],['MITRE ATT&CK v15 Delta','What changed in ATT&CK v15 and how our classifier was retrained in 48 hours.']].map(([t,d],i) => (
-              <div key={i} style={{ padding: '32px 28px', borderRight: i < 1 ? '1px solid rgba(0,255,65,0.08)' : 'none', transition: 'background 0.2s' }}
-                onMouseEnter={e => e.currentTarget.style.background='rgba(0,255,65,0.04)'}
-                onMouseLeave={e => e.currentTarget.style.background='transparent'}>
-                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: 'rgba(255,255,255,0.35)', marginBottom: 10, letterSpacing: '0.08em' }}>RESEARCH NOTE</div>
-                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, fontWeight: 700, color: '#00ff41', marginBottom: 10 }}>{t}</div>
-                <p style={{ fontFamily: 'Archivo, sans-serif', fontSize: 14, color: 'rgba(255,255,255,0.55)', lineHeight: 1.7, margin: 0 }}>{d}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
       {/* ── SERVICES ── */}
-      <section ref={servicesRef} id="services" style={{ position: 'relative', zIndex: 1, padding: '80px 40px', borderTop: '1px solid rgba(0,255,65,0.08)' }}>
+      <section ref={servicesRef} id="services" style={{ position: 'relative', zIndex: 1, padding: '80px 40px', borderTop: '1px solid rgba(0,255,65,0.08)', scrollMarginTop: '80px' }}>
         <div style={{ maxWidth: 900 }}>
           <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'rgba(0,255,65,0.4)', letterSpacing: '0.12em', marginBottom: 14 }}>&gt;_ // SERVICES</div>
           <h2 style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 'clamp(28px,4vw,48px)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.02em', lineHeight: 1.05, margin: '0 0 24px', color: '#00ff41', textShadow: '0 0 30px rgba(0,255,65,0.2)' }}>WHAT WE OFFER</h2>
@@ -383,6 +377,47 @@ export default function Landing() {
                 <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: '#00ff41', fontWeight: 700, marginBottom: 10, letterSpacing: '0.06em' }}>{s.tag}</div>
                 <h3 style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, fontWeight: 700, color: '#fff', letterSpacing: '0.06em', marginBottom: 12 }}>{s.title}</h3>
                 <p style={{ fontFamily: 'Archivo, sans-serif', fontSize: 14, color: 'rgba(255,255,255,0.55)', lineHeight: 1.7, margin: 0 }}>{s.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── TECHNOLOGY ── */}
+      <section ref={techRef} id="technology" style={{ position: 'relative', zIndex: 1, padding: '80px 40px', borderTop: '1px solid rgba(0,255,65,0.08)', scrollMarginTop: '80px' }}>
+        <div style={{ maxWidth: 800 }}>
+          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'rgba(0,255,65,0.4)', letterSpacing: '0.12em', marginBottom: 14 }}>&gt;_ // TECHNOLOGY</div>
+          <h2 style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 'clamp(28px,4vw,48px)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.02em', lineHeight: 1.05, margin: '0 0 24px', color: '#00ff41' }}>HOW IT WORKS</h2>
+          <p style={{ fontFamily: 'Archivo, sans-serif', fontSize: 16, color: 'rgba(255,255,255,0.65)', lineHeight: 1.8, marginBottom: 32 }}>
+            autoMITRE combines a SecBERT transformer for multi-label MITRE ATT&amp;CK TTP classification with an XGBoost ensemble for risk scoring. A local or cloud-hosted LLM (Phi-3.5-mini or Groq) provides deep natural-language threat reasoning. All analysis runs in under two seconds — on-premises or cloud.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 0, border: '1px solid rgba(0,255,65,0.08)' }}>
+            {[['SecBERT', 'Transformer model fine-tuned on CVE and threat-report corpora for TTP classification.'],['XGBoost Ensemble','Gradient-boosted severity scoring across CVSS, EPSS, and proprietary heuristics.'],['LLM Reasoning','Groq Cloud (llama-3) or local Phi-3.5-mini for narrative threat intelligence reports.']].map(([t,d],i) => (
+              <div key={i} style={{ padding: '32px 28px', borderRight: i < 2 ? '1px solid rgba(0,255,65,0.08)' : 'none' }}>
+                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, fontWeight: 700, color: '#00ff41', marginBottom: 10 }}>[0{i+1}] {t}</div>
+                <p style={{ fontFamily: 'Archivo, sans-serif', fontSize: 14, color: 'rgba(255,255,255,0.55)', lineHeight: 1.7, margin: 0 }}>{d}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* ── BLOG ── */}
+      <section ref={blogRef} id="blog" style={{ position: 'relative', zIndex: 1, padding: '80px 40px', borderTop: '1px solid rgba(0,255,65,0.08)', scrollMarginTop: '80px' }}>
+        <div style={{ maxWidth: 800 }}>
+          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'rgba(0,255,65,0.4)', letterSpacing: '0.12em', marginBottom: 14 }}>&gt;_ // BLOG &amp; RESEARCH</div>
+          <h2 style={{ fontFamily: "'Archivo Black', sans-serif", fontSize: 'clamp(28px,4vw,48px)', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '-0.02em', lineHeight: 1.05, margin: '0 0 24px', color: '#00ff41' }}>THREAT INSIGHTS</h2>
+          <p style={{ fontFamily: 'Archivo, sans-serif', fontSize: 16, color: 'rgba(255,255,255,0.65)', lineHeight: 1.8, marginBottom: 40 }}>
+            Deep-dives into emerging attack patterns, MITRE ATT&amp;CK framework updates, and real-world red-team simulations. Our research team publishes weekly analysis on adversarial TTPs and defensive countermeasures drawn directly from live threat data.
+          </p>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 0, border: '1px solid rgba(0,255,65,0.08)' }}>
+            {[['APT29 TTP Breakdown','How autoMITRE mapped 47 techniques from a single NOBELIUM report in under 3 seconds.'],['MITRE ATT&CK v15 Delta','What changed in ATT&CK v15 and how our classifier was retrained in 48 hours.']].map(([t,d],i) => (
+              <div key={i} style={{ padding: '32px 28px', borderRight: i < 1 ? '1px solid rgba(0,255,65,0.08)' : 'none', transition: 'background 0.2s' }}
+                onMouseEnter={e => e.currentTarget.style.background='rgba(0,255,65,0.04)'}
+                onMouseLeave={e => e.currentTarget.style.background='transparent'}>
+                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 10, color: 'rgba(255,255,255,0.35)', marginBottom: 10, letterSpacing: '0.08em' }}>RESEARCH NOTE</div>
+                <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 13, fontWeight: 700, color: '#00ff41', marginBottom: 10 }}>{t}</div>
+                <p style={{ fontFamily: 'Archivo, sans-serif', fontSize: 14, color: 'rgba(255,255,255,0.55)', lineHeight: 1.7, margin: 0 }}>{d}</p>
               </div>
             ))}
           </div>

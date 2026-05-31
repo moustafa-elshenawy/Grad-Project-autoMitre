@@ -7,3 +7,7 @@ __pycache__/
 *.pid
 *.db
 test_pdf.py
+backend/venv/
+frontend/src_backup/
+frontend/src_backup_old/
+fixes.patch

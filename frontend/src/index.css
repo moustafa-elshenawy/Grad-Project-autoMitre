@@ -25,7 +25,7 @@
   --bold-success: #16A34A;
   --bold-warning: #D97706;
   --bold-danger: #DC2626;
-  --bold-surface: #0a0a0a;
+  --bold-surface: #16241b;
   --bold-text: #00ff41;
   --bold-paper: #020202;
 
@@ -33,8 +33,8 @@
   --bg-primary: transparent; /* Allows ParticleBackground to show */
   --bg-secondary: rgba(0, 255, 65, 0.02);
   --bg-tertiary: rgba(0, 255, 65, 0.05);
-  --bg-card: rgba(0, 0, 0, 0.6);
-  --bg-card-hover: rgba(0, 255, 65, 0.04);
+  --bg-card: rgba(16, 26, 18, 0.9);
+  --bg-card-hover: rgba(0, 255, 65, 0.08);
   --bg-inverse: #00ff41;
 
   /* ── Accents ────────────────────────── */
@@ -63,8 +63,8 @@
   --text-on-dark-muted: rgba(255, 255, 255, 0.4);
 
   /* ── Borders ──────────────────────────────────────────────────────────── */
-  --border-dim: rgba(0, 255, 65, 0.1);
-  --border-soft: rgba(0, 255, 65, 0.2);
+  --border-dim: rgba(0, 255, 65, 0.18);
+  --border-soft: rgba(0, 255, 65, 0.3);
   --border-accent: #00ff41;
   --border-glow: rgba(0, 255, 65, 0.55);
 
@@ -86,8 +86,8 @@
   --space-8: 32px;
 
   /* ── Shadows (hard-offset for commanding presence) ────────────────────── */
-  --shadow-card: 0 0 10px rgba(0, 255, 65, 0.05);
-  --shadow-card-hover: 0 0 20px rgba(0, 255, 65, 0.15);
+  --shadow-card: 0 10px 40px rgba(0, 0, 0, 0.9), inset 0 1px 0 rgba(0, 255, 65, 0.15), 0 0 12px rgba(0, 255, 65, 0.08);
+  --shadow-card-hover: 0 12px 48px rgba(0, 0, 0, 0.95), inset 0 1px 0 rgba(0, 255, 65, 0.25), 0 0 20px rgba(0, 255, 65, 0.18);
   --shadow-glow-blue: 0 0 0 3px rgba(0, 255, 65, 0.28);
   --shadow-glow-red: 0 0 0 3px rgba(220, 38, 38, 0.28);
 
@@ -100,7 +100,7 @@
   --topbar-bg: rgba(2, 2, 2, 0.8);
   --sidebar-bg: rgba(2, 2, 2, 0.9);
 
-  --glass-border: 1px solid rgba(0, 255, 65, 0.15);
+  --glass-border: 1px solid rgba(0, 255, 65, 0.32);
   --glass-blur: blur(8px);
   --glass-radius: 4px;
 
@@ -263,6 +263,30 @@ a:hover { color: var(--bold-primary-deep); }
   color: var(--text-on-dark);
   letter-spacing: -0.02em;
   text-transform: uppercase;
+  transition: all 0.2s ease;
+}
+
+.topnav-logo-link {
+  transition: all 0.2s ease;
+}
+
+.topnav-logo-link:hover .logo-text {
+  color: #00ff41 !important;
+  text-shadow: 0 0 10px rgba(0, 255, 65, 0.7);
+}
+
+.topnav-logo svg {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.topnav-logo-link:hover svg {
+  animation: logo-shield-pulse 1.2s infinite ease-in-out;
+}
+
+@keyframes logo-shield-pulse {
+  0% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(0, 255, 65, 0.4)); }
+  50% { transform: scale(1.15); filter: drop-shadow(0 0 8px rgba(0, 255, 65, 0.8)); }
+  100% { transform: scale(1); filter: drop-shadow(0 0 2px rgba(0, 255, 65, 0.4)); }
 }
 
 .topnav-menu {
@@ -441,11 +465,27 @@ a:hover { color: var(--bold-primary-deep); }
   overflow: hidden;
 }
 
-
+.card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 65, 0.4), transparent);
+  transition: var(--transition-base);
+  pointer-events: none;
+  z-index: 10;
+}
 
 .card:hover {
   transform: translate(-1px, -1px);
   box-shadow: var(--shadow-card-hover);
+}
+
+.card:hover::before {
+  background: linear-gradient(90deg, transparent, rgba(0, 255, 65, 0.85), transparent);
+  box-shadow: 0 0 8px rgba(0, 255, 65, 0.4);
 }
 
 .card-header {
@@ -583,7 +623,7 @@ a:hover { color: var(--bold-primary-deep); }
 
 .badge-nist {
   background: var(--bold-primary);
-  color: #FFFFFF;
+  color: #020202;
   border-color: var(--bold-primary);
 }
 
@@ -595,7 +635,7 @@ a:hover { color: var(--bold-primary-deep); }
 
 .badge-defend {
   background: var(--bold-secondary);
-  color: #FFFFFF;
+  color: #020202;
   border-color: var(--bold-secondary);
 }
 
@@ -633,7 +673,7 @@ a:hover { color: var(--bold-primary-deep); }
 
 .btn-primary {
   background: var(--bold-primary);
-  color: #FFFFFF;
+  color: #020202;
   border-color: var(--bold-surface);
   box-shadow: 4px 4px 0 0 var(--bold-surface);
 }
@@ -949,7 +989,7 @@ textarea.form-input {
 
 .chat-avatar.ai {
   background: var(--bold-primary);
-  color: #FFFFFF;
+  color: #020202;
 }
 
 .chat-avatar.user {
@@ -976,7 +1016,7 @@ textarea.form-input {
 
 .chat-bubble.user {
   background: var(--bold-primary);
-  color: #FFFFFF;
+  color: #020202;
   box-shadow: 3px 3px 0 0 var(--bold-secondary);
   border-color: var(--bold-surface);
 }
@@ -1004,7 +1044,7 @@ textarea.form-input {
   font-weight: 800;
 }
 
-.chat-bubble.user strong { color: #FFFFFF; }
+.chat-bubble.user strong { color: #000000; }
 
 .chat-bubble code {
   font-family: var(--font-mono);
@@ -1015,7 +1055,7 @@ textarea.form-input {
   font-weight: 600;
 }
 
-.chat-bubble.user code { background: rgba(255, 255, 255, 0.2); }
+.chat-bubble.user code { background: rgba(0, 0, 0, 0.15); }
 
 .chat-suggestions {
   display: flex;
@@ -1041,7 +1081,7 @@ textarea.form-input {
 
 .chat-suggestion-btn:hover {
   background: var(--bold-primary);
-  color: #FFFFFF;
+  color: #020202;
 }
 
 .chat-input-area {
@@ -1238,7 +1278,7 @@ table.data-table {
   font-family: var(--font-display);
   font-size: 14px;
   font-weight: 900;
-  color: #FFFFFF;
+  color: #020202;
   flex-shrink: 0;
 }
 
@@ -1290,7 +1330,10 @@ table.data-table {
   transition: var(--transition-fast);
 }
 
-.technique-chip:hover { background: var(--bold-primary); }
+.technique-chip:hover {
+  background: var(--bold-primary);
+  color: #020202;
+}
 
 /* ── Responsive ──────────────────────────────────────────────────────────── */
 @media (max-width: 1200px) {
@@ -1569,13 +1612,13 @@ table.data-table {
 
 .workspace-btn.active-private {
   background: var(--bold-primary);
-  color: #FFFFFF;
+  color: #020202;
   cursor: default;
 }
 
 .workspace-btn.active-team {
   background: var(--bold-secondary);
-  color: #FFFFFF;
+  color: #020202;
   cursor: default;
 }
 
@@ -1584,3 +1627,395 @@ table.data-table {
   color: #111111;
   cursor: default;
 }
+
+/* Horizontal scroll wrapper with hidden scrollbar */
+.scroll-container {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  white-space: nowrap;
+  max-width: 100%;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+  padding-bottom: 4px;
+  -webkit-overflow-scrolling: touch;
+}
+.scroll-container::-webkit-scrollbar {
+  display: none; /* Chrome, Safari, Opera */
+}
+
+/* ── Calendar Widget ── */
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.calendar-day-cell {
+  aspect-ratio: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  border-radius: 4px;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 600;
+  transition: var(--transition-fast);
+  border: 1px solid transparent;
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.calendar-day-cell:hover {
+  background: rgba(0, 255, 65, 0.08);
+  border-color: rgba(0, 255, 65, 0.2);
+}
+
+.calendar-day-cell.today {
+  border: 1px solid var(--bold-primary);
+  background: rgba(0, 255, 65, 0.05);
+}
+
+.calendar-day-cell.selected {
+  background: var(--bold-primary) !important;
+  color: #020202 !important;
+  font-weight: 800;
+  box-shadow: 0 0 10px rgba(0, 255, 65, 0.5);
+}
+
+.calendar-day-cell.other-month {
+  color: rgba(255, 255, 255, 0.2);
+  background: transparent;
+}
+
+.calendar-threat-dot {
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  position: absolute;
+  bottom: 4px;
+  box-shadow: 0 0 6px currentColor;
+}
+
+/* =============================================================================
+   Cute Mascot Bot - Interactive Chat Companion
+   ========================================================================== */
+.cute-bot-companion {
+  animation: bot-bob 3s ease-in-out infinite;
+}
+
+@keyframes bot-bob {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-8px) rotate(1deg); }
+}
+
+.bot-speech-bubble {
+  position: absolute;
+  bottom: 85px;
+  right: -10px;
+  width: 180px;
+  background: var(--bg-card);
+  border: 2px solid var(--bold-primary);
+  box-shadow: 4px 4px 0 0 var(--bold-surface);
+  border-radius: var(--radius-md);
+  padding: 8px 12px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-primary);
+  line-height: 1.4;
+  z-index: 101;
+  pointer-events: none;
+  animation: bubble-fade-in 0.2s ease-out;
+}
+
+.bot-speech-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -10px;
+  right: 32px;
+  border-width: 8px 8px 0;
+  border-style: solid;
+  border-color: var(--bold-primary) transparent;
+  display: block;
+  width: 0;
+}
+
+.bot-speech-bubble::before {
+  content: '';
+  position: absolute;
+  bottom: -7px;
+  right: 32px;
+  border-width: 8px 8px 0;
+  border-style: solid;
+  border-color: var(--bg-card) transparent;
+  display: block;
+  width: 0;
+  z-index: 1;
+}
+
+@keyframes bubble-fade-in {
+  from { opacity: 0; transform: scale(0.9) translateY(5px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.bot-antenna {
+  width: 4px;
+  height: 12px;
+  background: var(--bold-surface);
+  border: 1px solid var(--bold-primary);
+  margin: 0 auto;
+  position: relative;
+  z-index: 1;
+}
+
+.bot-antenna::after {
+  content: '';
+  position: absolute;
+  top: -6px;
+  left: -2px;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--bold-primary);
+  box-shadow: 0 0 8px var(--bold-primary);
+  animation: antenna-blink 1s ease-in-out infinite alternate;
+}
+
+@keyframes antenna-blink {
+  0% { opacity: 0.4; filter: brightness(0.8); }
+  100% { opacity: 1; filter: brightness(1.3); }
+}
+
+.bot-head {
+  width: 54px;
+  height: 46px;
+  background: var(--bg-card);
+  border: 2px solid var(--bold-primary);
+  border-radius: 8px;
+  box-shadow: inset 0 0 10px rgba(0, 255, 65, 0.2), 0 0 5px rgba(0, 255, 65, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto;
+  position: relative;
+  overflow: hidden;
+}
+
+.bot-face {
+  width: 44px;
+  height: 36px;
+  background: rgba(0, 0, 0, 0.8);
+  border-radius: 5px;
+  border: 1px solid rgba(0, 255, 65, 0.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.bot-eyes {
+  display: flex;
+  gap: 6px;
+  transition: transform 0.05s linear;
+}
+
+.bot-eye {
+  width: 8px;
+  height: 8px;
+  background: var(--bold-primary);
+  border-radius: 50%;
+  box-shadow: 0 0 8px var(--bold-primary);
+  animation: bot-blink 4s infinite;
+  transition: all 0.12s ease-out;
+}
+
+.cute-bot-companion:hover .bot-eye {
+  background: transparent;
+  border-radius: 0;
+  border: 2px solid var(--bold-primary);
+  border-bottom: none;
+  border-right: none;
+  transform: rotate(45deg);
+  box-shadow: none;
+  filter: drop-shadow(0 0 3px var(--bold-primary));
+  animation: none;
+}
+
+@keyframes bot-blink {
+  0%, 96%, 98%, 100% { transform: scaleY(1); }
+  97% { transform: scaleY(0.1); }
+}
+
+.bot-mouth {
+  width: 10px;
+  height: 4px;
+  background: transparent;
+  border: 2px solid var(--bold-primary);
+  border-top: none;
+  border-radius: 0 0 5px 5px;
+  box-shadow: none;
+  margin-top: 4px;
+  transition: all 0.12s ease-out;
+}
+
+.bot-mouth-smile {
+  height: 6px;
+  width: 14px;
+  border-radius: 0 0 7px 7px;
+  background: var(--bold-primary);
+  border: 2px solid var(--bold-primary);
+  border-top: none;
+  box-shadow: 0 0 6px var(--bold-primary);
+  margin-top: 2px;
+}
+
+.bot-hand {
+  width: 6px;
+  height: 16px;
+  background: var(--bg-card);
+  border: 1.5px solid var(--bold-primary);
+  border-radius: 3px;
+  position: absolute;
+  top: 24px;
+}
+
+.bot-hand.left {
+  left: -2px;
+  animation: hand-float-left 3s ease-in-out infinite alternate;
+}
+
+.bot-hand.right {
+  right: -2px;
+  animation: hand-float-right 3s ease-in-out infinite alternate;
+}
+
+@keyframes hand-float-left {
+  0% { transform: translateY(0px) rotate(-5deg); }
+  100% { transform: translateY(-4px) rotate(5deg); }
+}
+
+@keyframes hand-float-right {
+  0% { transform: translateY(-4px) rotate(5deg); }
+  100% { transform: translateY(0px) rotate(-5deg); }
+}
+
+/* Mascot Bot - Thinking State */
+.bot-thinking {
+  animation: bot-thinking-bob 1.5s ease-in-out infinite !important;
+}
+
+@keyframes bot-thinking-bob {
+  0%, 100% { transform: translateY(0px) rotate(0deg); }
+  50% { transform: translateY(-4px) rotate(-1.5deg); }
+}
+
+.bot-speech-bubble.thinking {
+  width: 60px;
+  padding: 6px 8px;
+  bottom: 85px;
+  right: 2px;
+}
+
+.bot-eyes-thinking {
+  animation: bot-eyes-thinking 2.5s ease-in-out infinite;
+}
+
+@keyframes bot-eyes-thinking {
+  0%, 100% { transform: translate(2px, -3px); }
+  50% { transform: translate(-2px, -3px); }
+}
+
+.bot-mouth-thinking {
+  width: 6px !important;
+  height: 6px !important;
+  border-radius: 50% !important;
+  background: transparent !important;
+  border: 2px solid var(--bold-primary) !important;
+  box-shadow: 0 0 4px var(--bold-primary) !important;
+  margin-top: 3px !important;
+}
+
+/* Mascot Bot - Responding State */
+.bot-responding {
+  animation: bot-responding-bounce 0.6s ease-in-out infinite alternate !important;
+}
+
+@keyframes bot-responding-bounce {
+  0% { transform: translateY(0px) scale(1); }
+  100% { transform: translateY(-12px) scale(1.05); }
+}
+
+.bot-speech-bubble.responding {
+  width: 140px;
+  padding: 8px 10px;
+  bottom: 85px;
+  right: -38px;
+}
+
+.bot-speech-bubble.responding::after,
+.bot-speech-bubble.responding::before {
+  right: 62px !important;
+}
+
+.bot-responding .bot-eye {
+  background: transparent !important;
+  border-radius: 50% !important;
+  border: 2px solid var(--bold-primary) !important;
+  border-top-color: transparent !important;
+  animation: bot-eye-spin 0.6s linear infinite !important;
+  box-shadow: none !important;
+}
+
+@keyframes bot-eye-spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.bot-responding .bot-mouth {
+  width: 12px !important;
+  height: 4px !important;
+  border-radius: 3px !important;
+  background: var(--bold-primary) !important;
+  border: none !important;
+  box-shadow: 0 0 6px var(--bold-primary) !important;
+  animation: bot-mouth-wave 0.25s ease-in-out infinite alternate !important;
+}
+
+@keyframes bot-mouth-wave {
+  0% { transform: scaleY(0.5); }
+  100% { transform: scaleY(2); }
+}
+
+.bot-responding .bot-hand.left {
+  animation: hand-spin-left 0.4s linear infinite alternate !important;
+}
+.bot-responding .bot-hand.right {
+  animation: hand-spin-right 0.4s linear infinite alternate !important;
+}
+
+@keyframes hand-spin-left {
+  0% { transform: translateY(0px) rotate(-30deg); }
+  100% { transform: translateY(-6px) rotate(30deg); }
+}
+
+@keyframes hand-spin-right {
+  0% { transform: translateY(-6px) rotate(30deg); }
+  100% { transform: translateY(0px) rotate(-30deg); }
+}
+
+.bot-responding .bot-antenna::after {
+  animation: antenna-blink-fast 0.2s ease-in-out infinite alternate !important;
+  background: #ff0055 !important;
+  box-shadow: 0 0 12px #ff0055 !important;
+}
+
+@keyframes antenna-blink-fast {
+  0% { opacity: 0.3; }
+  100% { opacity: 1; }
+}
+
+

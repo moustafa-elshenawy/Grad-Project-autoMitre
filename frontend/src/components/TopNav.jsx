@@ -1,4 +1,4 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate, Link } from 'react-router-dom'
 import {
   LayoutDashboard, Search, Map, Grid, MessageSquare,
   Rss, FileText, Settings, Shield, Wifi, AlertTriangle,
@@ -31,10 +31,8 @@ const navItems = [
   },
   {
     group: 'System', items: [
-      { to: '/team',     icon: Users,         label: 'Team' },
-      { to: '/audit',    icon: ClipboardList,  label: 'Audit Log',  adminOnly: true },
-      { to: '/settings', icon: Settings,       label: 'Settings',   adminOnly: true },
-      { to: '/profile',  icon: User,           label: 'Profile' },
+      { to: '/team', icon: Users, label: 'Team' },
+      { to: '/audit', icon: ClipboardList, label: 'Audit Log', adminOnly: true },
     ]
   },
 ]
@@ -42,14 +40,15 @@ const navItems = [
 export default function TopNav({ rightElements }) {
   const { user, logout } = useAuth()
   const { isContextualAdmin } = useDataView()
+  const navigate = useNavigate()
 
   const filteredNavItems = navItems.map(group => {
     if (group.group === 'System') {
       return {
         ...group,
         items: group.items.filter(item => {
-           if (item.adminOnly) return isContextualAdmin
-           return true
+          if (item.adminOnly) return isContextualAdmin
+          return true
         })
       }
     }
@@ -59,10 +58,12 @@ export default function TopNav({ rightElements }) {
   return (
     <nav className="topnav">
       {/* Logo */}
-      <div className="topnav-logo">
-        <Shield size={20} color="#00ff41" stroke="#00ff41" fill="rgba(0,255,65,0.1)" />
-        <span className="logo-text">autoMITRE</span>
-      </div>
+      <Link to="/dashboard" className="topnav-logo-link" style={{ textDecoration: 'none' }}>
+        <div className="topnav-logo">
+          <Shield size={20} color="#00ff41" stroke="#00ff41" fill="rgba(0,255,65,0.1)" />
+          <span className="logo-text" style={{ textTransform: 'none' }}>AutoMITRE</span>
+        </div>
+      </Link>
 
       {/* Main Categories & Dropdowns */}
       <div className="topnav-menu">
@@ -97,16 +98,31 @@ export default function TopNav({ rightElements }) {
           <span>API: <strong>ONLINE</strong></span>
         </div>
 
+        <Link
+          to="/settings"
+          className="btn btn-icon btn-secondary"
+          title="System Settings"
+          style={{ width: 40, height: 40, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+        >
+          <Settings size={18} />
+        </Link>
+
         {rightElements}
 
         <div className="user-profile-menu">
-          <div className="user-avatar">
-            {user?.username?.[0]?.toUpperCase() || 'U'}
-          </div>
-          <div className="user-info">
-            <div className="username">{user?.username || 'User'}</div>
-            <div className="user-role">
-              {isContextualAdmin && <span className="admin-badge">Admin</span>}
+          <div
+            onClick={() => navigate('/profile')}
+            style={{ display: 'flex', alignItems: 'center', gap: 10, cursor: 'pointer' }}
+            title="View Profile"
+          >
+            <div className="user-avatar">
+              {user?.username?.[0]?.toUpperCase() || 'U'}
+            </div>
+            <div className="user-info">
+              <div className="username">{user?.username || 'User'}</div>
+              <div className="user-role">
+                {isContextualAdmin && <span className="admin-badge">Admin</span>}
+              </div>
             </div>
           </div>
           <button onClick={logout} className="logout-btn" title="Logout">
