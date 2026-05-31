@@ -167,7 +167,7 @@ export default function RiskHeatmap() {
 
                 {/* Legend + selected details */}
 
-                <div style={{ width: 220, flexShrink: 0 }}>
+                <div style={{ width: 220, flexShrink: 0, marginLeft: 'auto' }}>
                     <div className="card" style={{ marginBottom: 12 }}>
                         <div style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.8 }}>Risk Legend</div>
                         {[
