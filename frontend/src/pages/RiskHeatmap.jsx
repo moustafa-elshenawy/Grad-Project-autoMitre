@@ -82,20 +82,20 @@ export default function RiskHeatmap() {
                 )}
             </div>
 
-            <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start' }}>
+            <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start', justifyContent: 'flex-start' }}>
                 {/* Y-axis label */}
-                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 0, paddingTop: 40 }}>
-                    <span style={{ fontSize: 11, color: '#475569', writingMode: 'vertical-rl', transform: 'rotate(180deg)', letterSpacing: 1, textTransform: 'uppercase', fontWeight: 600 }}>Impact →</span>
+                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', height: 532, flexShrink: 0 }}>
+                    <span style={{ fontSize: 11, color: '#94a3b8', writingMode: 'vertical-rl', transform: 'rotate(180deg)', letterSpacing: 2, textTransform: 'uppercase', fontWeight: 700 }}>Impact →</span>
                 </div>
 
-                <div style={{ flex: 1 }}>
+                <div style={{ flexShrink: 0 }}>
                     {/* Y-axis labels + grid */}
                     {impacts.map(impact => (
                         <div key={impact} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
-                            <div style={{ width: 90, textAlign: 'right', fontSize: 11, color: '#475569', flexShrink: 0 }}>
+                            <div style={{ width: 90, textAlign: 'right', fontSize: 11, color: '#94a3b8', flexShrink: 0, fontWeight: 600 }}>
                                 {impact} — {impactLabels[impact]}
                             </div>
-                            <div style={{ display: 'flex', gap: 8, flex: 1 }}>
+                            <div style={{ display: 'flex', gap: 8 }}>
                                 {likelihoods.map(likelihood => {
                                     const key = `${likelihood}-${impact}`
                                     const cellThreats = threats[key] || []
@@ -107,27 +107,39 @@ export default function RiskHeatmap() {
                                             className="heatmap-cell"
                                             style={{
                                                 background: bg,
-                                                border: `2px solid ${isSelected ? border : 'transparent'}`,
-                                                boxShadow: isSelected ? `0 0 20px ${border}60` : 'none',
-                                                flex: 1,
-                                                minHeight: 70,
-                                                fontSize: 10,
-                                                fontWeight: 700,
+                                                border: `2px solid ${isSelected ? border : 'rgba(255, 255, 255, 0.08)'}`,
+                                                boxShadow: isSelected ? `0 0 18px ${border}b0` : 'none',
+                                                width: 100,
+                                                height: 100,
                                                 color: 'white',
                                                 flexDirection: 'column',
                                                 gap: 4,
-                                                padding: 8,
+                                                padding: '8px',
                                                 textShadow: '0 1px 3px rgba(0,0,0,0.5)',
-                                                cursor: 'pointer'
+                                                cursor: 'pointer',
                                             }}
                                             onClick={() => setSelected(isSelected ? null : key)}
                                         >
-                                            <span style={{ fontSize: 16, fontFamily: 'JetBrains Mono, monospace', fontWeight: 800 }}>
+                                            <span style={{ fontSize: 24, fontFamily: 'JetBrains Mono, monospace', fontWeight: 800 }}>
                                                 {likelihood * impact}
                                             </span>
-                                            <span style={{ fontSize: 8, letterSpacing: 0.5, opacity: 0.8 }}>{label}</span>
+                                            <span style={{ fontSize: 9, letterSpacing: 0.5, opacity: 0.85, textTransform: 'uppercase' }}>{label}</span>
                                             {cellThreats.length > 0 && (
-                                                <span style={{ fontSize: 8, opacity: 0.7 }}>{cellThreats.length} threat{cellThreats.length > 1 ? 's' : ''}</span>
+                                                <span style={{
+                                                    position: 'absolute',
+                                                    top: 4,
+                                                    right: 4,
+                                                    background: 'rgba(0, 0, 0, 0.65)',
+                                                    padding: '2px 5px',
+                                                    borderRadius: 4,
+                                                    fontSize: 9,
+                                                    fontFamily: 'JetBrains Mono, monospace',
+                                                    color: '#38bdf8',
+                                                    fontWeight: 600,
+                                                    border: '1px solid rgba(255, 255, 255, 0.15)'
+                                                }}>
+                                                    {cellThreats.length}
+                                                </span>
                                             )}
                                         </div>
                                     )
@@ -139,18 +151,22 @@ export default function RiskHeatmap() {
                     {/* X-axis labels */}
                     <div style={{ display: 'flex', paddingLeft: 98 }}>
                         {likelihoods.map(l => (
-                            <div key={l} style={{ flex: 1, textAlign: 'center', fontSize: 10, color: '#475569', marginTop: 6 }}>
+                            <div key={l} style={{ width: 100, marginRight: 8, textAlign: 'center', fontSize: 10, color: '#475569', marginTop: 6, flexShrink: 0 }}>
                                 <div style={{ fontWeight: 700, color: '#94a3b8' }}>{l}</div>
-                                <div style={{ fontSize: 9, marginTop: 2 }}>{likelihoodLabels[l]}</div>
+                                <div style={{ fontSize: 9, marginTop: 2, color: 'rgba(255, 255, 255, 0.4)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={likelihoodLabels[l]}>
+                                    {likelihoodLabels[l]}
+                                </div>
                             </div>
                         ))}
                     </div>
-                    <div style={{ textAlign: 'center', paddingLeft: 98, fontSize: 11, color: '#475569', marginTop: 8, fontWeight: 600, textTransform: 'uppercase', letterSpacing: 1 }}>
+                    <div style={{ textAlign: 'center', paddingLeft: 98, fontSize: 11, color: '#94a3b8', marginTop: 8, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 2 }}>
                         Likelihood →
                     </div>
                 </div>
 
+
                 {/* Legend + selected details */}
+
                 <div style={{ width: 220, flexShrink: 0 }}>
                     <div className="card" style={{ marginBottom: 12 }}>
                         <div style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.8 }}>Risk Legend</div>

@@ -1109,25 +1109,36 @@ textarea.form-input {
 }
 
 .heatmap-cell {
-  aspect-ratio: 1;
-  border: 2px solid var(--bold-surface);
   border-radius: var(--radius-sm);
   cursor: pointer;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   font-family: var(--font-display);
-  font-size: 22px;
-  font-weight: 900;
-  transition: var(--transition-fast);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
   position: relative;
+  overflow: hidden;
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+}
+
+.heatmap-cell::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(255, 255, 255, 0) 50%);
+  pointer-events: none;
 }
 
 .heatmap-cell:hover {
-  transform: translate(-2px, -2px);
-  box-shadow: 4px 4px 0 0 var(--bold-surface);
-  z-index: 2;
+  transform: scale(1.08) translateY(-2px);
+  z-index: 10;
 }
+
 
 /* Scan line — keep but recolor to Bold primary */
 @keyframes scanLine {
