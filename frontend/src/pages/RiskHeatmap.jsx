@@ -186,50 +186,8 @@ export default function RiskHeatmap() {
                     </div>
                 </div>
 
-                {/* Top MITRE Techniques */}
-                <div style={{ flex: 1, minWidth: 280, maxWidth: 450, display: 'flex', flexDirection: 'column', height: 532 }}>
-                    <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-                        <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', marginBottom: 16, textTransform: 'uppercase', letterSpacing: 1 }}>
-                            Top Mapped MITRE Techniques
-                        </div>
-
-                        {topTechs.length === 0 ? (
-                            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', color: 'rgba(255,255,255,0.3)', gap: 8, padding: 24, textAlign: 'center' }}>
-                                <span style={{ fontSize: 13, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600 }}>No Mapped Techniques Found</span>
-                                <span style={{ fontSize: 11 }}>Analyze threat data to view active techniques.</span>
-                            </div>
-                        ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto', flex: 1, paddingRight: 4 }}>
-                                {topTechs.map(tech => (
-                                    <div key={tech.id} style={{ background: 'rgba(255,255,255,0.02)', padding: '12px 14px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, transition: 'all 0.2s ease' }} className="tech-item-hover">
-                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, overflow: 'hidden' }}>
-                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, fontWeight: 700, color: '#38bdf8', background: 'rgba(56,189,248,0.1)', padding: '2px 6px', borderRadius: 4, flexShrink: 0 }}>
-                                                    {tech.id}
-                                                </span>
-                                                <span style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase', fontWeight: 700, letterSpacing: 0.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                                    {tech.tactic}
-                                                </span>
-                                            </div>
-                                            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={tech.name}>
-                                                {tech.name}
-                                            </span>
-                                        </div>
-                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: 6, minWidth: 42, padding: '4px 6px', flexShrink: 0 }}>
-                                            <span style={{ fontSize: 14, fontWeight: 800, color: '#fff', fontFamily: 'JetBrains Mono, monospace' }}>
-                                                {tech.count}
-                                            </span>
-                                            <span style={{ fontSize: 8, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>Hits</span>
-                                        </div>
-                                    </div>
-                                ))}
-                            </div>
-                        )}
-                    </div>
-                </div>
                 {/* Legend + selected details */}
-
-                <div style={{ width: 220, flexShrink: 0, marginLeft: 'auto' }}>
+                <div style={{ width: 220, flexShrink: 0 }}>
                     <div className="card" style={{ marginBottom: 12 }}>
                         <div style={{ fontSize: 11, fontWeight: 600, color: '#94a3b8', marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.8 }}>Risk Legend</div>
                         {[
@@ -271,6 +229,48 @@ export default function RiskHeatmap() {
                             )}
                         </div>
                     )}
+                </div>
+
+                {/* Top MITRE Techniques */}
+                <div style={{ flex: 1, minWidth: 280, maxWidth: 450, display: 'flex', flexDirection: 'column', height: 532, marginLeft: 'auto' }}>
+                    <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', marginBottom: 16, textTransform: 'uppercase', letterSpacing: 1 }}>
+                            Top Mapped MITRE Techniques
+                        </div>
+
+                        {topTechs.length === 0 ? (
+                            <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', flexDirection: 'column', color: 'rgba(255,255,255,0.3)', gap: 8, padding: 24, textAlign: 'center' }}>
+                                <span style={{ fontSize: 13, fontFamily: 'JetBrains Mono, monospace', fontWeight: 600 }}>No Mapped Techniques Found</span>
+                                <span style={{ fontSize: 11 }}>Analyze threat data to view active techniques.</span>
+                            </div>
+                        ) : (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: 12, overflowY: 'auto', flex: 1, paddingRight: 4 }}>
+                                {topTechs.map(tech => (
+                                    <div key={tech.id} style={{ background: 'rgba(255,255,255,0.02)', padding: '12px 14px', borderRadius: 8, border: '1px solid rgba(255,255,255,0.06)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, transition: 'all 0.2s ease' }} className="tech-item-hover">
+                                        <div style={{ display: 'flex', flexDirection: 'column', gap: 2, flex: 1, overflow: 'hidden' }}>
+                                            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                                                <span style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, fontWeight: 700, color: '#38bdf8', background: 'rgba(56,189,248,0.1)', padding: '2px 6px', borderRadius: 4, flexShrink: 0 }}>
+                                                    {tech.id}
+                                                </span>
+                                                <span style={{ fontSize: 10, color: '#64748b', textTransform: 'uppercase', fontWeight: 700, letterSpacing: 0.5, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                                                    {tech.tactic}
+                                                </span>
+                                            </div>
+                                            <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={tech.name}>
+                                                {tech.name}
+                                            </span>
+                                        </div>
+                                        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'rgba(255, 255, 255, 0.04)', border: '1px solid rgba(255, 255, 255, 0.08)', borderRadius: 6, minWidth: 42, padding: '4px 6px', flexShrink: 0 }}>
+                                            <span style={{ fontSize: 14, fontWeight: 800, color: '#fff', fontFamily: 'JetBrains Mono, monospace' }}>
+                                                {tech.count}
+                                            </span>
+                                            <span style={{ fontSize: 8, color: '#94a3b8', textTransform: 'uppercase', fontWeight: 600 }}>Hits</span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
                 </div>
             </div>
         </div>
