@@ -252,7 +252,7 @@ export default function RiskHeatmap() {
                 </div>
 
                 {/* Center Gap: Threat Severity Distribution */}
-                <div style={{ flex: 1, minWidth: 260, maxWidth: 360, display: 'flex', flexDirection: 'column', height: 532 }}>
+                <div style={{ flex: 1, minWidth: 260, maxWidth: 360, display: 'flex', flexDirection: 'column', height: 532, marginLeft: 'auto', marginRight: 'auto' }}>
                     <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 16 }}>
                         <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 1 }}>
                             Severity Distribution
@@ -304,7 +304,7 @@ export default function RiskHeatmap() {
                 </div>
 
                 {/* Top MITRE Techniques */}
-                <div style={{ flex: 1, minWidth: 280, maxWidth: 450, display: 'flex', flexDirection: 'column', height: 532, marginLeft: 'auto' }}>
+                <div style={{ flex: 1, minWidth: 280, maxWidth: 450, display: 'flex', flexDirection: 'column', height: 532 }}>
                     <div className="card" style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                         <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', marginBottom: 16, textTransform: 'uppercase', letterSpacing: 1 }}>
                             Top Mapped MITRE Techniques
