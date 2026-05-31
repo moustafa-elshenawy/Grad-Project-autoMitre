@@ -2029,4 +2029,11 @@ table.data-table {
   100% { opacity: 1; }
 }
 
+.tech-item-hover:hover {
+  background: rgba(255, 255, 255, 0.04) !important;
+  border-color: rgba(56, 189, 248, 0.3) !important;
+  transform: translateX(4px);
+}
+
+
 
